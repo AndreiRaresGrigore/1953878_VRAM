@@ -1,0 +1,39 @@
+services:
+
+  simulator:
+    image: mars-iot-simulator:multiarch_v1
+
+    ports:
+      - "8080:8080"
+    networks:
+      - mars-net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    volumes:
+      - ./templates/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - ./templates/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - mars-net
+
+  ingestion-service:
+    build: ./sources/ingestion-service
+    volumes:
+    - ./templates/ingestion-service/config.json:/app/config.json
+    depends_on:
+      - rabbitmq
+      - simulator
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - mars-net
+
+volumes:
+  rabbitmq_data:
+
+networks:
+  mars-net:
+    driver: bridge

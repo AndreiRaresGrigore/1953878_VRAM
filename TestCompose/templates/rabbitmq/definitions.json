@@ -1,0 +1,118 @@
+{
+  "users": [
+    {
+      "name": "mars_admin",
+      "password": "mars_admin",
+      "tags": "administrator"
+    },
+    {
+      "name": "ingestion_service",
+      "password": "ingestion_pass",
+      "tags": ""
+    },
+    {
+      "name": "automation_service",
+      "password": "automation_pass",
+      "tags": ""
+    },
+    {
+      "name": "frontend_service",
+      "password": "frontend_pass",
+      "tags": ""
+    }
+  ],
+
+  "vhosts": [
+    { "name": "/" }
+  ],
+
+  "permissions": [
+    {
+      "user": "mars_admin",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    },
+    {
+      "user": "ingestion_service",
+      "vhost": "/",
+      "configure": ".*",
+      "write": "sensor.events",
+      "read": ""
+    },
+    {
+      "user": "automation_service",
+      "vhost": "/",
+      "configure": "",
+      "write": "actuator.commands",
+      "read": "sensor.events"
+    },
+    {
+      "user": "frontend_service",
+      "vhost": "/",
+      "configure": "",
+      "write": "",
+      "read": "sensor.events|actuator.commands"
+    }
+  ],
+
+  "exchanges": [
+    {
+      "name": "sensor.events",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false
+    },
+    {
+      "name": "actuator.commands",
+      "vhost": "/",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false
+    }
+  ],
+
+  "queues": [
+    {
+      "name": "automation.sensor.queue",
+      "vhost": "/",
+      "durable": true
+    },
+    {
+      "name": "state.sensor.queue",
+      "vhost": "/",
+      "durable": true
+    },
+    {
+      "name": "actuator.command.queue",
+      "vhost": "/",
+      "durable": true
+    }
+  ],
+
+  "bindings": [
+    {
+      "source": "sensor.events",
+      "vhost": "/",
+      "destination": "automation.sensor.queue",
+      "destination_type": "queue",
+      "routing_key": "sensor.#"
+    },
+    {
+      "source": "sensor.events",
+      "vhost": "/",
+      "destination": "state.sensor.queue",
+      "destination_type": "queue",
+      "routing_key": "sensor.#"
+    },
+    {
+      "source": "actuator.commands",
+      "vhost": "/",
+      "destination": "actuator.command.queue",
+      "destination_type": "queue",
+      "routing_key": "actuator.#"
+    }
+  ]
+}
