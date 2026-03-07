@@ -50,7 +50,7 @@ services:
     build: ./sources/automation-engine
     volumes:
       - ./templates/automation-engine/config.yaml:/app/config.yaml
-      - automation-data:/data
+      - ./data/automation-data:/data
     ports:
       - "8081:8081"     # REST API (rules + state)
     depends_on:
