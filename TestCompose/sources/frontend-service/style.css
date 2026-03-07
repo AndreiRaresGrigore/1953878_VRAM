@@ -167,3 +167,95 @@ body {
     text-align: right;
     font-weight: normal;
 }
+
+/* ==========================================
+   STILI PER TABS E RULE MANAGEMENT
+   ========================================== */
+
+/* Navigazione a Schede (Tabs) */
+.tabs-container {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    border-bottom: var(--brutal-border);
+    padding-bottom: 1.5rem;
+}
+
+.tab-btn {
+    opacity: 0.6;
+}
+
+.tab-btn.active {
+    opacity: 1;
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px 0px var(--shadow-color);
+}
+
+.btn-green { background-color: var(--color-green); }
+.btn-red { background-color: #f87171; color: white; }
+
+/* Stili per i Form */
+.rule-form-container {
+    background-color: var(--color-blue);
+    margin-bottom: 3rem;
+}
+
+.rule-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 150px;
+}
+
+.form-group label {
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+.form-control {
+    padding: 0.8rem;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+/* Griglia per le Regole Esistenti */
+.rules-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+.rule-card {
+    background-color: white;
+    border: var(--brutal-border);
+    box-shadow: var(--brutal-shadow);
+    padding: 1.5rem;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.rule-logic {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.rule-logic span.highlight {
+    background-color: var(--color-yellow);
+    padding: 0.2rem 0.5rem;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    margin: 0 0.3rem;
+}

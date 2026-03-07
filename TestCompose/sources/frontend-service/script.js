@@ -32,6 +32,20 @@ const timeElementMap = {
     "habitat_heater": "heater-time"
 };
 
+const sensorMetricsMap = {
+    "greenhouse_temperature": ["temperature_c"],
+    "entrance_humidity": ["humidity_pct"],
+    "co2_hall": ["co2_ppm"],
+    "corridor_pressure": ["pressure_kpa"],
+    "water_tank_level": ["fill_percentage", "level_liters"],
+    "air_quality_pm25": ["pm1", "pm25", "pm10"],
+    "hydroponic_ph": ["ph"],
+    "mars/telemetry/solar_array": ["power_kw"],
+    "mars/telemetry/radiation": ["radiation_usv_h"],
+    "mars/telemetry/life_support": ["oxygen_percent"],
+    "mars/telemetry/thermal_loop": ["temperature_c"]
+};
+
 // ==========================================
 // 2. FUNZIONI HELPER
 // ==========================================
@@ -87,6 +101,28 @@ function updateStatusDisplay(ledId, badgeId, status) {
             badge.style.display = 'inline-block';
             badge.style.backgroundColor = 'var(--color-blue)';
         }
+    }
+}
+
+function updateMetricOptions() {
+    const sensorSelect = document.getElementById('rule-sensor');
+    const metricSelect = document.getElementById('rule-metric');
+    const selectedSensor = sensorSelect.value;
+    
+    metricSelect.innerHTML = ''; // Svuota opzioni precedenti
+    
+    if (sensorMetricsMap[selectedSensor]) {
+        sensorMetricsMap[selectedSensor].forEach(metric => {
+            const opt = document.createElement('option');
+            opt.value = metric;
+            opt.innerText = metric;
+            metricSelect.appendChild(opt);
+        });
+    } else {
+        const opt = document.createElement('option');
+        opt.value = "";
+        opt.innerText = "No metrics found";
+        metricSelect.appendChild(opt);
     }
 }
 
@@ -178,6 +214,7 @@ client.on('connect', () => {
 client.on('message', (topic, message) => {
     try {
         const payload = JSON.parse(message.toString());
+        console.log('[Live Data] ${topic}:', payload);
 
         // GESTIONE DEL TEMPO
         try {
@@ -293,3 +330,115 @@ client.on('close', () => {
     const leds = document.querySelectorAll('.status-led');
     leds.forEach(led => led.classList.remove('led-green', 'led-red'));
 });
+
+// ==========================================
+// 7. GESTIONE TAB (NAVIGAZIONE)
+// ==========================================
+function switchTab(tabName) {
+    // Gestione visualizzazione div
+    document.getElementById('view-dashboard').style.display = tabName === 'dashboard' ? 'block' : 'none';
+    document.getElementById('view-rules').style.display = tabName === 'rules' ? 'block' : 'none';
+    
+    // Gestione stile bottoni
+    document.getElementById('tab-dashboard').classList.toggle('active', tabName === 'dashboard');
+    document.getElementById('tab-rules').classList.toggle('active', tabName === 'rules');
+
+    // Se apriamo le regole, aggiorniamo la lista dal database
+    if (tabName === 'rules') {
+        fetchRules();
+    }
+}
+
+// ==========================================
+// 8. AUTOMATION RULES MANAGEMENT (CRUD)
+// ==========================================
+// NOTA: Assicurati che il tuo automation-engine esponga queste rotte sulla porta 8000
+const ENGINE_API_URL = 'http://localhost:8081/api/rules';
+
+// Carica le regole dal Database
+async function fetchRules() {
+    const listContainer = document.getElementById('rules-list');
+    try {
+        const response = await fetch(ENGINE_API_URL);
+        if (!response.ok) throw new Error("Errore nel caricamento delle regole");
+        
+        const rules = await response.json();
+        listContainer.innerHTML = ''; 
+        
+        if (rules.length === 0) {
+            listContainer.innerHTML = '<p style="color: #666;">No active rules found. Create one above.</p>';
+            return;
+        }
+
+        rules.forEach(rule => {
+            const ruleElement = document.createElement('div');
+            ruleElement.className = 'rule-card';
+            // Visualizza metrica se presente
+            const metricDisplay = rule.metric ? `.<span class="highlight">${rule.metric}</span>` : '';
+            ruleElement.innerHTML = `
+                <div class="rule-logic">
+                    IF <span class="highlight">${rule.sensor_id}</span>${metricDisplay} 
+                    ${rule.operator} 
+                    <span class="highlight">${rule.threshold}</span> 
+                    THEN SET <span class="highlight">${rule.actuator_name}</span> 
+                    TO <span class="highlight">${rule.actuator_state}</span>
+                </div>
+                <button class="btn btn-red" onclick="deleteRule(${rule.id})">🗑️ Delete</button>
+            `;
+            listContainer.appendChild(ruleElement);
+        });
+    } catch (error) {
+        console.error(error);
+        listContainer.innerHTML = '<p style="color: red;">⚠️ Cannot connect to Automation Engine API.</p>';
+    }
+}
+
+// Invia una nuova regola al Database
+document.getElementById('add-rule-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const newRule = {
+        sensor_id: document.getElementById('rule-sensor').value,
+        metric: document.getElementById('rule-metric').value, // Prende il valore dal nuovo select
+        operator: document.getElementById('rule-operator').value,
+        threshold: parseFloat(document.getElementById('rule-threshold').value),
+        actuator_name: document.getElementById('rule-actuator').value,
+        actuator_state: document.getElementById('rule-state').value,
+        description: 'Created from Frontend'
+    };
+
+    try {
+        const response = await fetch(ENGINE_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newRule)
+        });
+
+        if (response.ok) {
+            document.getElementById('rule-threshold').value = ''; 
+            fetchRules(); 
+        } else {
+            alert('Error adding rule. Check the Automation Engine logs.');
+        }
+    } catch (error) {
+        console.error("Errore salvataggio regola:", error);
+        alert('Cannot reach the Automation Engine.');
+    }
+});
+
+// Elimina una regola dal Database
+async function deleteRule(ruleId) {
+    if (!confirm('Are you sure you want to delete this automation rule?')) return;
+
+    try {
+        const response = await fetch(`${ENGINE_API_URL}/${ruleId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            fetchRules(); // Ricarica la lista visiva
+        }
+    } catch (error) {
+        console.error("Errore eliminazione regola:", error);
+    }
+}
