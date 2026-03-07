@@ -1,21 +1,24 @@
 """
 api.py — Flask REST API exposed by the automation engine.
 
-Endpoints:
+Rules CRUD:
+  GET    /api/rules               → list all rules
+  POST   /api/rules               → create a rule
+  GET    /api/rules/<id>          → get one rule
+  PUT    /api/rules/<id>          → update a rule
+  DELETE /api/rules/<id>          → delete a rule
 
-  Rules CRUD:
-    GET    /api/rules               → list all rules
-    POST   /api/rules               → create a rule
-    GET    /api/rules/<id>          → get one rule
-    PUT    /api/rules/<id>          → update a rule
-    DELETE /api/rules/<id>          → delete a rule
+Sensor state cache:
+  GET    /api/state               → all latest sensor values
+  GET    /api/state/<sensor_id>   → latest value for one sensor
 
-  Sensor state cache:
-    GET    /api/state               → all latest sensor values
-    GET    /api/state/<sensor_id>   → latest value for one sensor
+Actuator state + manual control:
+  GET    /api/actuators           → all actuator states (from cache)
+  GET    /api/actuators/<name>    → one actuator state
+  POST   /api/actuators/<name>    → manually set actuator (body: {"state": "ON"|"OFF"})
 
-  Health:
-    GET    /health
+Health:
+  GET    /health
 """
 
 import threading
@@ -23,14 +26,15 @@ from flask import Flask, jsonify, request, abort
 from flask_cors import CORS
 from db import get_rules, get_rule_by_id, add_rule, delete_rule, update_rule
 
-VALID_OPERATORS  = {"<", "<=", "=", ">=", ">"}
-VALID_ACTUATORS  = {"cooling_fan", "entrance_humidifier", "hall_ventilation", "habitat_heater"}
-VALID_STATES     = {"ON", "OFF"}
+VALID_OPERATORS = {"<", "<=", "=", ">=", ">"}
+VALID_ACTUATORS = {"cooling_fan", "entrance_humidifier", "hall_ventilation", "habitat_heater"}
+VALID_STATES    = {"ON", "OFF"}
 
 
-def create_app(sensor_state: dict, state_lock: threading.Lock) -> Flask:
+def create_app(sensor_state: dict, actuator_state: dict,
+               state_lock: threading.Lock, set_actuator_fn) -> Flask:
     app = Flask(__name__)
-    CORS(app)  # allow frontend (different origin) to call this API
+    CORS(app)
 
     # ------------------------------------------------------------------
     # Health
@@ -61,7 +65,6 @@ def create_app(sensor_state: dict, state_lock: threading.Lock) -> Flask:
         err  = _validate_rule_body(body)
         if err:
             abort(400, description=err)
-
         rule = add_rule(
             sensor_id      = body["sensor_id"],
             metric         = body.get("metric", ""),
@@ -81,15 +84,11 @@ def create_app(sensor_state: dict, state_lock: threading.Lock) -> Flask:
         err  = _validate_rule_body(body, partial=True)
         if err:
             abort(400, description=err)
-
-        # Normalise state uppercase if present
         if "actuator_state" in body:
             body["actuator_state"] = body["actuator_state"].upper()
         if "threshold" in body:
             body["threshold"] = float(body["threshold"])
-
-        rule = update_rule(rule_id, **body)
-        return jsonify(rule)
+        return jsonify(update_rule(rule_id, **body))
 
     @app.route("/api/rules/<int:rule_id>", methods=["DELETE"])
     def delete_rule_endpoint(rule_id):
@@ -115,6 +114,36 @@ def create_app(sensor_state: dict, state_lock: threading.Lock) -> Flask:
         return jsonify(val)
 
     # ------------------------------------------------------------------
+    # Actuator state + manual control
+    # ------------------------------------------------------------------
+
+    @app.route("/api/actuators", methods=["GET"])
+    def all_actuators():
+        with state_lock:
+            return jsonify(dict(actuator_state))
+
+    @app.route("/api/actuators/<actuator_name>", methods=["GET"])
+    def one_actuator(actuator_name):
+        with state_lock:
+            val = actuator_state.get(actuator_name)
+        if val is None:
+            abort(404, description=f"No state yet for actuator '{actuator_name}'")
+        return jsonify({"actuator_id": actuator_name, "state": val})
+
+    @app.route("/api/actuators/<actuator_name>", methods=["POST"])
+    def set_actuator(actuator_name):
+        if actuator_name not in VALID_ACTUATORS:
+            abort(400, description=f"Unknown actuator '{actuator_name}'")
+        body  = request.get_json(force=True, silent=True) or {}
+        state = body.get("state", "").upper()
+        if state not in VALID_STATES:
+            abort(400, description=f"'state' must be ON or OFF")
+        ok = set_actuator_fn(actuator_name, state)
+        if not ok:
+            abort(502, description="Simulator did not accept the command")
+        return jsonify({"actuator_id": actuator_name, "state": state})
+
+    # ------------------------------------------------------------------
     # Error handlers
     # ------------------------------------------------------------------
 
@@ -126,34 +155,28 @@ def create_app(sensor_state: dict, state_lock: threading.Lock) -> Flask:
     def not_found(e):
         return jsonify({"error": str(e.description)}), 404
 
+    @app.errorhandler(502)
+    def bad_gateway(e):
+        return jsonify({"error": str(e.description)}), 502
+
     return app
 
 
-# ------------------------------------------------------------------
-# Validation helper
-# ------------------------------------------------------------------
-
 def _validate_rule_body(body: dict, partial: bool = False) -> str | None:
-    """Return an error string, or None if valid."""
     required = ["sensor_id", "operator", "threshold", "actuator_name", "actuator_state"]
     if not partial:
         for field in required:
             if field not in body:
                 return f"Missing required field: '{field}'"
-
     if "operator" in body and body["operator"] not in VALID_OPERATORS:
         return f"Invalid operator '{body['operator']}'. Must be one of: {VALID_OPERATORS}"
-
     if "threshold" in body:
         try:
             float(body["threshold"])
         except (TypeError, ValueError):
             return "'threshold' must be a number"
-
     if "actuator_name" in body and body["actuator_name"] not in VALID_ACTUATORS:
         return f"Invalid actuator '{body['actuator_name']}'. Must be one of: {VALID_ACTUATORS}"
-
     if "actuator_state" in body and body["actuator_state"].upper() not in VALID_STATES:
-        return f"Invalid actuator_state '{body['actuator_state']}'. Must be ON or OFF"
-
+        return f"Invalid actuator_state. Must be ON or OFF"
     return None
