@@ -21,9 +21,10 @@ services:
       - "5672:5672"     # AMQP
       - "15672:15672"   # Management UI
       - "1883:1883"     # MQTT
+      - "15675:15675"   # MQTT WebSockets
     networks:
       - mars-net
-    command: sh -c "rabbitmq-plugins enable --offline rabbitmq_mqtt && rabbitmq-server"
+    command: sh -c "rabbitmq-plugins enable --offline rabbitmq_mqtt rabbitmq_web_mqtt && rabbitmq-server"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
@@ -43,6 +44,17 @@ services:
       - PYTHONUNBUFFERED=1
     networks:
       - mars-net
+
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./sources/frontend-service:/usr/share/nginx/html:ro
+    networks:
+      - mars-net
+    depends_on:
+      - ingestion-service
 
 networks:
   mars-net:

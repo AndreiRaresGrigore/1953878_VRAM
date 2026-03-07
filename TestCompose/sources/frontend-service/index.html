@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mars IoT Simulator - Dashboard</title>
+    <style>
+        /* --- FOGLIO DI STILE NEO-BRUTALISTA --- */
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap');
+
+        :root {
+            --bg-color: #fafafa;
+            --border-color: #1a1a1a;
+            --shadow-color: #1a1a1a;
+            --color-green: #A7F3D0; 
+            --color-purple: #D8B4FE; 
+            --color-blue: #93C5FD;
+            --color-yellow: #FDE047;
+            
+            --brutal-border: 3px solid var(--border-color);
+            --brutal-shadow: 5px 5px 0px 0px var(--shadow-color);
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--border-color);
+            margin: 0;
+            padding: 2rem;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4rem;
+            padding-bottom: 1rem;
+            border-bottom: var(--brutal-border);
+        }
+
+        .logo { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        
+        .neo-box {
+            border: var(--brutal-border);
+            box-shadow: var(--brutal-shadow);
+            border-radius: 8px; 
+            padding: 2rem;
+            background-color: white;
+        }
+
+        .btn {
+            border: var(--brutal-border);
+            box-shadow: var(--brutal-shadow);
+            border-radius: 8px;
+            padding: 0.8rem 1.5rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            font-size: 1rem;
+            text-decoration: none;
+            color: var(--border-color);
+        }
+
+        .btn-purple { background-color: var(--color-purple); }
+        .btn-blue { background-color: var(--color-blue); }
+
+        .btn:active {
+            transform: translate(5px, 5px);
+            box-shadow: 0px 0px 0px 0px var(--shadow-color);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+        }
+
+        .hero-section {
+            background-color: var(--color-green);
+        }
+
+        .hero-section h1 {
+            font-size: 3.5rem;
+            margin-top: 0;
+            line-height: 1.1;
+        }
+
+        .data-panel {
+            background-color: var(--bg-color);
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* Dividiamo i sensori su due colonne per fare spazio */
+            gap: 1.5rem;
+        }
+
+        .data-panel-title {
+            grid-column: 1 / -1; /* Fa occupare al titolo tutta la larghezza */
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+        }
+
+        .sensor-card {
+            background-color: white;
+            border: var(--brutal-border);
+            padding: 1.2rem;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column; /* Impilamento verticale per le card ristrette */
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .sensor-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-purple);
+            text-shadow: 1px 1px 0px var(--border-color);
+        }
+
+        .badge {
+            background-color: var(--color-yellow);
+            border: var(--brutal-border);
+            padding: 0.3rem 0.8rem;
+            font-size: 0.8rem;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="logo">
+            <span>🚀 Mars IoT Dashboard</span>
+        </div>
+        <div>
+            <a href="#" class="btn btn-purple" id="connection-status">Simulatore Disconnesso</a>
+        </div>
+    </nav>
+
+    <div class="dashboard-grid">
+        <div class="neo-box hero-section">
+            <div class="badge">Controllo Missione</div>
+            <h1>Monitoraggio <br>Sensori Rover</h1>
+            <p>Interfaccia in tempo reale per la telemetria del simulatore IoT su Marte. I dati vengono inviati automaticamente dal broker MQTT (RabbitMQ).</p>
+        </div>
+
+        <div class="neo-box data-panel">
+            <h3 class="data-panel-title">Telemetria in Arrivo:</h3>
+            
+            <div class="sensor-card">
+                <div>
+                    <strong>🌡️ Temperatura Serra</strong>
+                    <p style="margin: 0; color: #666; font-size: 0.8rem;">greenhouse_temperature</p>
+                </div>
+                <div class="sensor-value" id="temp-val">--</div>
+            </div>
+
+            <div class="sensor-card">
+                <div>
+                    <strong>💨 Pressione Corridoio</strong>
+                    <p style="margin: 0; color: #666; font-size: 0.8rem;">corridor_pressure</p>
+                </div>
+                <div class="sensor-value" id="press-val">--</div>
+            </div>
+            
+            <div class="sensor-card">
+                <div>
+                    <strong>💧 Livello Serbatoio</strong>
+                    <p style="margin: 0; color: #666; font-size: 0.8rem;">water_tank_level</p>
+                </div>
+                <div class="sensor-value" id="water-val">--</div>
+            </div>
+
+            <div class="sensor-card">
+                <div>
+                    <strong>☁️ Livello CO2</strong>
+                    <p style="margin: 0; color: #666; font-size: 0.8rem;">co2_hall</p>
+                </div>
+                <div class="sensor-value" id="co2-val">--</div>
+            </div>
+
+            <div class="sensor-card">
+                <div>
+                    <strong>💦 Umidità Ingresso</strong>
+                    <p style="margin: 0; color: #666; font-size: 0.8rem;">entrance_humidity</p>
+                </div>
+                <div class="sensor-value" id="hum-val">--</div>
+            </div>
+
+            <div class="sensor-card">
+                <div>
+                    <strong>🌫️ PM 2.5 Aria</strong>
+                    <p style="margin: 0; color: #666; font-size: 0.8rem;">air_quality_pm25</p>
+                </div>
+                <div class="sensor-value" id="pm25-val">--</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    
+    <script src="script.js"></script>
+</body>
+</html>
