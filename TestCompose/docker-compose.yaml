@@ -35,6 +35,7 @@ services:
     build: ./sources/ingestion-service
     volumes:
       - ./templates/ingestion-service/config.yaml:/app/config.yaml
+      - ./sources/ingestion-service:/app
     depends_on:
       rabbitmq:
         condition: service_healthy
