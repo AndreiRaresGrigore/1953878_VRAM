@@ -21,11 +21,11 @@
       "tags": ""
     }
   ],
-
   "vhosts": [
-    { "name": "/" }
+    {
+      "name": "/"
+    }
   ],
-
   "permissions": [
     {
       "user": "mars_admin",
@@ -44,9 +44,9 @@
     {
       "user": "automation_service",
       "vhost": "/",
-      "configure": "",
+      "configure": ".*",
       "write": "actuator.commands",
-      "read": "sensor.events"
+      "read": ".*"
     },
     {
       "user": "frontend_service",
@@ -56,7 +56,6 @@
       "read": "sensor.events|actuator.commands"
     }
   ],
-
   "exchanges": [
     {
       "name": "sensor.events",
@@ -73,7 +72,6 @@
       "auto_delete": false
     }
   ],
-
   "queues": [
     {
       "name": "automation.sensor.queue",
@@ -91,7 +89,6 @@
       "durable": true
     }
   ],
-
   "bindings": [
     {
       "source": "sensor.events",

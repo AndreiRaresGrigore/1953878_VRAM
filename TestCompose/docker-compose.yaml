@@ -46,6 +46,24 @@ services:
     networks:
       - mars-net
 
+  automation-engine:
+    build: ./sources/automation-engine
+    volumes:
+      - ./templates/automation-engine/config.yaml:/app/config.yaml
+      - automation-data:/data
+    ports:
+      - "8081:8081"     # REST API (rules + state)
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      simulator:
+        condition: service_healthy
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DB_PATH=/data/rules.db
+    networks:
+      - mars-net
+
   frontend:
     image: nginx:alpine
     ports:
@@ -55,8 +73,11 @@ services:
     networks:
       - mars-net
     depends_on:
-      - ingestion-service
+      - automation-engine
 
 networks:
   mars-net:
     driver: bridge
+
+volumes:
+  automation-data:   # persists SQLite rules.db across restarts
