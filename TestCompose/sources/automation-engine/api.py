@@ -2,20 +2,20 @@
 api.py — Flask REST API exposed by the automation engine.
 
 Rules CRUD:
-  GET    /api/rules               → list all rules
-  POST   /api/rules               → create a rule
-  GET    /api/rules/<id>          → get one rule
-  PUT    /api/rules/<id>          → update a rule
-  DELETE /api/rules/<id>          → delete a rule
+  GET    /api/rules             → list all rules
+  POST   /api/rules             → create a rule
+  GET    /api/rules/<id>        → get one rule
+  PUT    /api/rules/<id>        → update a rule
+  DELETE /api/rules/<id>        → delete a rule
 
 Sensor state cache:
-  GET    /api/state               → all latest sensor values
-  GET    /api/state/<sensor_id>   → latest value for one sensor
+  GET    /api/state             → all latest sensor values
+  GET    /api/state/<sensor_id> → latest value for one sensor
 
-Actuator state + manual control:
-  GET    /api/actuators           → all actuator states (from cache)
-  GET    /api/actuators/<name>    → one actuator state
-  POST   /api/actuators/<name>    → manually set actuator (body: {"state": "ON"|"OFF"})
+Actuator proxy (delegates to simulator):
+  GET    /api/actuators                → list all actuators + current state
+  GET    /api/actuators/<name>         → one actuator state
+  POST   /api/actuators/<name>         → set actuator state {"state": "ON"|"OFF"}
 
 Health:
   GET    /health
@@ -31,8 +31,8 @@ VALID_ACTUATORS = {"cooling_fan", "entrance_humidifier", "hall_ventilation", "ha
 VALID_STATES    = {"ON", "OFF"}
 
 
-def create_app(sensor_state: dict, actuator_state: dict,
-               state_lock: threading.Lock, set_actuator_fn) -> Flask:
+def create_app(sensor_state: dict, state_lock: threading.Lock,
+               set_actuator_fn, get_actuators_fn) -> Flask:
     app = Flask(__name__)
     CORS(app)
 
@@ -114,21 +114,28 @@ def create_app(sensor_state: dict, actuator_state: dict,
         return jsonify(val)
 
     # ------------------------------------------------------------------
-    # Actuator state + manual control
+    # Actuator proxy
     # ------------------------------------------------------------------
 
     @app.route("/api/actuators", methods=["GET"])
     def all_actuators():
-        with state_lock:
-            return jsonify(dict(actuator_state))
+        try:
+            return jsonify(get_actuators_fn())
+        except Exception as e:
+            abort(502, description=f"Could not reach simulator: {e}")
 
     @app.route("/api/actuators/<actuator_name>", methods=["GET"])
     def one_actuator(actuator_name):
-        with state_lock:
-            val = actuator_state.get(actuator_name)
-        if val is None:
-            abort(404, description=f"No state yet for actuator '{actuator_name}'")
-        return jsonify({"actuator_id": actuator_name, "state": val})
+        if actuator_name not in VALID_ACTUATORS:
+            abort(400, description=f"Unknown actuator '{actuator_name}'")
+        try:
+            actuators = get_actuators_fn()
+            match = next((a for a in actuators if a["id"] == actuator_name), None)
+            if not match:
+                abort(404, description=f"Actuator '{actuator_name}' not found")
+            return jsonify(match)
+        except Exception as e:
+            abort(502, description=f"Could not reach simulator: {e}")
 
     @app.route("/api/actuators/<actuator_name>", methods=["POST"])
     def set_actuator(actuator_name):
@@ -137,11 +144,11 @@ def create_app(sensor_state: dict, actuator_state: dict,
         body  = request.get_json(force=True, silent=True) or {}
         state = body.get("state", "").upper()
         if state not in VALID_STATES:
-            abort(400, description=f"'state' must be ON or OFF")
+            abort(400, description="'state' must be ON or OFF")
         ok = set_actuator_fn(actuator_name, state)
         if not ok:
             abort(502, description="Simulator did not accept the command")
-        return jsonify({"actuator_id": actuator_name, "state": state})
+        return jsonify({"id": actuator_name, "state": state})
 
     # ------------------------------------------------------------------
     # Error handlers
