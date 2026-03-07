@@ -103,7 +103,10 @@
                     <div><strong>☣️ Air Quality (VOC)</strong></div>
                     <div class="status-container"><span class="status-badge" id="voc-badge"></span><span class="status-led" id="voc-led"></span></div>
                 </div>
-                <div class="sensor-value" id="voc-val">--</div>
+                <div class="multi-value-container">
+                    <div><div class="multi-value-label">VOC</div><div class="sensor-value" id="voc-ppb-val">--</div></div>
+                    <div><div class="multi-value-label">CO2e</div><div class="sensor-value" id="voc-co2e-val">--</div></div>
+                </div>
                 <div class="last-updated" id="voc-time">Waiting for data...</div>
             </div>
 
@@ -219,12 +222,14 @@
                         <option value="water_tank_level">water_tank_level</option>
                         <option value="air_quality_pm25">air_quality_pm25</option>
                         <option value="hydroponic_ph">hydroponic_ph</option>
+                        <option value="air_quality_voc">air_quality_voc</option>
                         <option value="mars/telemetry/solar_array">mars/telemetry/solar_array</option>
                         <option value="mars/telemetry/power_bus">mars/telemetry/power_bus</option>
                         <option value="mars/telemetry/power_consumption">mars/telemetry/power_consumption</option>
                         <option value="mars/telemetry/radiation">mars/telemetry/radiation</option>
                         <option value="mars/telemetry/life_support">mars/telemetry/life_support</option>
                         <option value="mars/telemetry/thermal_loop">mars/telemetry/thermal_loop</option>
+                        <option value="mars/telemetry/airlock">mars/telemetry/airlock</option>
                     </select>
                 </div>
                 <div class="form-group">

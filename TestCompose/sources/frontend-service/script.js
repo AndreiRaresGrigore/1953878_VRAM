@@ -37,6 +37,7 @@ const sensorMetricsMap = {
     "corridor_pressure": ["pressure_kpa"],
     "water_tank_level": ["fill_percentage", "level_liters"],
     "air_quality_pm25": ["pm1", "pm25", "pm10"],
+    "air_quality_voc": ["voc_ppb", "co2e_ppm"],
     "hydroponic_ph": ["ph"],
     "mars/telemetry/solar_array": ["power_kw", "voltage_v", "current_a", "cumulative_kwh"],
     "mars/telemetry/power_bus": ["power_kw", "voltage_v", "current_a", "cumulative_kwh"],
@@ -136,7 +137,8 @@ client.on('connect', () => {
 client.on('message', (topic, message) => {
     try {
         const payload = JSON.parse(message.toString());
-        
+        console.log(`[Live Data] ${topic}:`, payload);
+
         // Timer update
         const timeId = timeElementMap[payload.sensor_id];
         if (timeId) {
@@ -186,9 +188,12 @@ client.on('message', (topic, message) => {
                 updateStatusDisplay('pm-led', 'pm-badge', payload.status); break;
             }
             case "air_quality_voc": {
-                const m = getMeasure("voc_index") || getMeasure("voc") || getFirstMeasure();
-                if (m) document.getElementById('voc-val').innerText = `VOC: ${m.value} ${m.unit}`;
-                updateStatusDisplay('voc-led', 'voc-badge', payload.status); break;
+                const voc = getMeasure("voc_ppb"); 
+                const co2e = getMeasure("co2e_ppm");
+                if (voc) document.getElementById('voc-ppb-val').innerText = `${voc.value} ${voc.unit}`;
+                if (co2e) document.getElementById('voc-co2e-val').innerText = `${co2e.value} ${co2e.unit}`;
+                updateStatusDisplay('voc-led', 'voc-badge', payload.status); 
+                break;
             }
             case "hydroponic_ph": {
                 const m = getMeasure("ph") || getFirstMeasure();
@@ -235,7 +240,7 @@ client.on('message', (topic, message) => {
             case "mars/telemetry/life_support": {
                 // Aggiunta esplicita della scritta per l'ossigeno richiesta
                 const m = getMeasure("oxygen_percent") || getFirstMeasure();
-                if (m) document.getElementById('life-val').innerText = `Oxygen percentage: ${m.value} ${m.unit}`;
+                if (m) document.getElementById('life-val').innerText = `Oxygen: ${m.value} ${m.unit}`;
                 updateStatusDisplay('life-led', 'life-badge', payload.status); break;
             }
             case "mars/telemetry/airlock": {
