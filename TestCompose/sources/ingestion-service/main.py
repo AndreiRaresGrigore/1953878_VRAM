@@ -4,7 +4,8 @@ import threading
 import yaml
 import json
 import paho.mqtt.client as mqtt
-
+import json
+from jsonschema import validate, ValidationError
 from normalizer import normalizza_rest, normalizza_telemetria, to_list
 
 # ============================================================
@@ -44,16 +45,57 @@ mqtt_client.loop_start()
 # PUBBLICAZIONE
 # ============================================================
 
+EVENT_SCHEMA = {
+    "type": "object",
+    "required": ["sensor_id", "captured_at", "measurements", "sensor_type", "status"],
+    "properties": {
+        "sensor_id": {"type": "string"},
+        "sensor_type": {"type": "string", "enum": ["rest", "telemetry"]},
+        "captured_at": {"type": "string", "format": "date-time"},
+        "measurements": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["parameter", "value", "unit"],
+                "properties": {
+                    "parameter": {"type": "string"},
+                    "value": {"type": "number"},
+                    "unit": {"type": "string"}
+                }
+            }
+        },
+        "status": {"type": "string", "enum": ["ok", "warning", "IDLE", "PRESSURIZING", "DEPRESSURIZING", "--"]}
+    }
+}
+
+def valida_evento(evento):
+    """
+    Verifica se l'evento rispetta lo schema JSON definito.
+    Ritorna (True, None) se valido, (False, errore) se non valido.
+    """
+    try:
+        validate(instance=evento, schema=EVENT_SCHEMA)
+        return True, None
+    except ValidationError as e:
+        return False, e.message
+
 def pubblica_evento(sensor_id, evento):
+    # 1. Validazione preventiva (rispetto allo schema fornito)
+    is_valido, errore = valida_evento(evento)
+    if not is_valido:
+        print(f"[ERRORE VALIDAZIONE] Evento scartato per {sensor_id}: {errore}")
+        return
+
+    # 2. Pubblicazione su MQTT
     topic = f"sensor/{sensor_id}"
     mqtt_client.publish(topic, json.dumps(evento), qos=1)
     
-    # Estraiamo i valori in modo sicuro usando .get() per evitare KeyError
-    metric_name = evento.get("metric", evento.get("measurements", {}).get("metric", "N/A"))
-    val = evento.get("value", evento.get("measurements", {}).get("value", "N/A"))
-    unit = evento.get("unit", "")
+    # 3. Log migliorato per gestire l'array di misurazioni
+    m_list = evento.get("measurements", [])
+    # Creiamo una stringa leggibile con tutte le misurazioni presenti nell'evento
+    log_measurements = ", ".join([f"{m['parameter']}={m['value']}{m['unit']}" for m in m_list])
     
-    print(f"[PUB] {evento.get('sensor_id', 'unknown')} | {metric_name} = {val} {unit}")
+    print(f"[PUB] {evento.get('sensor_id')} | {log_measurements} | status: {evento.get('status')}")
 
 # ============================================================
 # SENSORI REST

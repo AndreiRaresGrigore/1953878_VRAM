@@ -178,94 +178,97 @@ client.on('connect', () => {
 client.on('message', (topic, message) => {
     try {
         const payload = JSON.parse(message.toString());
+        console.log(`[Live Data] ${topic}:`, payload);
 
-        // GESTIONE DEL TEMPO
-        try {
-            const timeId = timeElementMap[payload.sensor_id];
-            if (timeId) {
-                lastUpdatedTimes[timeId] = new Date();
-                updateTimeDisplay(timeId); 
-            }
-        } catch (timeErr) {}
+        // 1. GESTIONE DEL TEMPO (Usando captured_at se disponibile)
+        const timeId = timeElementMap[payload.sensor_id];
+        if (timeId) {
+            lastUpdatedTimes[timeId] = payload.captured_at ? new Date(payload.captured_at) : new Date();
+            updateTimeDisplay(timeId); 
+        }
 
-        const value = payload.measurements && payload.measurements.value !== undefined 
-            ? payload.measurements.value 
-            : payload.value;
-            
-        const metric = payload.measurements && payload.measurements.metric !== undefined 
-            ? payload.measurements.metric 
-            : payload.metric;
+        // Helper per cercare un parametro specifico nell'array measurements
+        const getMeasure = (paramName) => payload.measurements.find(m => m.parameter === paramName);
 
+        // 2. LOGICA DI AGGIORNAMENTO UI
         switch(payload.sensor_id) {
-            case "greenhouse_temperature":
-                document.getElementById('temp-val').innerText = `${value} ${payload.unit}`;
+            case "greenhouse_temperature": {
+                const m = getMeasure("temperature");
+                if (m) document.getElementById('temp-val').innerText = `${m.value} ${m.unit}`;
                 updateStatusDisplay('temp-led', 'temp-badge', payload.status);
                 break;
-            case "corridor_pressure":
-                document.getElementById('press-val').innerText = `${value} ${payload.unit}`;
+            }
+            case "corridor_pressure": {
+                const m = getMeasure("pressure");
+                if (m) document.getElementById('press-val').innerText = `${m.value} ${m.unit}`;
                 updateStatusDisplay('press-led', 'press-badge', payload.status);
                 break;
-            case "water_tank_level":
-                const waterValue = value !== undefined ? value : 0;
-                if (metric === "fill_percentage") document.getElementById('water-perc-val').innerText = `${waterValue} ${payload.unit}`;
-                else if (metric === "level_liters") document.getElementById('water-liters-val').innerText = `${waterValue} ${payload.unit}`;
+            }
+            case "water_tank_level": {
+                const perc = getMeasure("fill_percentage");
+                const liters = getMeasure("level_liters");
+                if (perc) document.getElementById('water-perc-val').innerText = `${perc.value} ${perc.unit}`;
+                if (liters) document.getElementById('water-liters-val').innerText = `${liters.value} ${liters.unit}`;
                 updateStatusDisplay('water-led', 'water-badge', payload.status);
                 break;
-            case "co2_hall":
-                document.getElementById('co2-val').innerText = `${value} ${payload.unit}`;
+            }
+            case "co2_hall": {
+                const m = getMeasure("co2_level");
+                if (m) document.getElementById('co2-val').innerText = `${m.value} ${m.unit}`;
                 updateStatusDisplay('co2-led', 'co2-badge', payload.status);
                 break;
-            case "entrance_humidity":
-                document.getElementById('hum-val').innerText = `${value} ${payload.unit}`;
+            }
+            case "entrance_humidity": {
+                const m = getMeasure("humidity");
+                if (m) document.getElementById('hum-val').innerText = `${m.value} ${m.unit}`;
                 updateStatusDisplay('hum-led', 'hum-badge', payload.status);
                 break;
-            case "air_quality_pm25":
-                const pmValue = value !== undefined ? value : 0;
-                if (metric.includes("pm1") && !metric.includes("pm10")) document.getElementById('pm1-val').innerText = `${pmValue} ${payload.unit}`;
-                else if (metric.includes("pm25")) document.getElementById('pm25-val').innerText = `${pmValue} ${payload.unit}`;
-                else if (metric.includes("pm10")) document.getElementById('pm10-val').innerText = `${pmValue} ${payload.unit}`;
+            }
+            case "air_quality_pm25": {
+                const pm1 = getMeasure("pm1.0");
+                const pm25 = getMeasure("pm2.5");
+                const pm10 = getMeasure("pm10");
+                if (pm1) document.getElementById('pm1-val').innerText = `${pm1.value} ${pm1.unit}`;
+                if (pm25) document.getElementById('pm25-val').innerText = `${pm25.value} ${pm25.unit}`;
+                if (pm10) document.getElementById('pm10-val').innerText = `${pm10.value} ${pm10.unit}`;
                 updateStatusDisplay('pm-led', 'pm-badge', payload.status);
                 break;
-            case "air_quality_voc":
-                document.getElementById('voc-val').innerText = `${value} ${payload.unit}`;
+            }
+            case "air_quality_voc": {
+                const m = getMeasure("voc_index");
+                if (m) document.getElementById('voc-val').innerText = `${m.value} ${m.unit}`;
                 updateStatusDisplay('voc-led', 'voc-badge', payload.status);
                 break;
-            case "hydroponic_ph":
-                const unit = payload.unit ? ` ${payload.unit}` : '';
-                document.getElementById('ph-val').innerText = `${value}${unit}`;
+            }
+            case "hydroponic_ph": {
+                const m = getMeasure("ph");
+                if (m) document.getElementById('ph-val').innerText = `${m.value}${m.unit ? ' ' + m.unit : ''}`;
                 updateStatusDisplay('ph-led', 'ph-badge', payload.status);
                 break;
+            }
+            // Telemetria (Esempi basati sui parametri comuni)
             case "mars/telemetry/solar_array":
-                document.getElementById('solar-val').innerText = `${value} ${payload.unit}`;
-                updateStatusDisplay('solar-led', 'solar-badge', payload.status);
-                break;
             case "mars/telemetry/power_bus":
-                document.getElementById('bus-val').innerText = `${value} ${payload.unit}`;
-                updateStatusDisplay('bus-led', 'bus-badge', payload.status);
-                break;
             case "mars/telemetry/power_consumption":
-                document.getElementById('cons-val').innerText = `${value} ${payload.unit}`;
-                updateStatusDisplay('cons-led', 'cons-badge', payload.status);
-                break;
             case "mars/telemetry/thermal_loop":
-                document.getElementById('thermal-val').innerText = `${value} ${payload.unit}`;
-                updateStatusDisplay('thermal-led', 'thermal-badge', payload.status);
-                break;
             case "mars/telemetry/radiation":
-                document.getElementById('rad-val').innerText = `${value} ${payload.unit}`;
-                updateStatusDisplay('rad-led', 'rad-badge', payload.status);
+            case "mars/telemetry/airlock": {
+                const m = payload.measurements[0]; // Spesso hanno un solo valore primario
+                const targetId = timeId.replace('-time', '-val');
+                if (m && document.getElementById(targetId)) {
+                    document.getElementById(targetId).innerText = `${m.value} ${m.unit}`;
+                }
+                const ledId = timeId.replace('-time', '-led');
+                const badgeId = timeId.replace('-time', '-badge');
+                updateStatusDisplay(ledId, badgeId, payload.status);
                 break;
-            case "mars/telemetry/life_support":
-                let displayMetric = metric === "oxygen_percent" ? "oxygen percentage" : metric;
-                document.getElementById('life-val').innerText = `${displayMetric}: ${value} ${payload.unit}`;
+            }
+            case "mars/telemetry/life_support": {
+                const oxy = getMeasure("oxygen_percent");
+                if (oxy) document.getElementById('life-val').innerText = `O2: ${oxy.value} ${oxy.unit}`;
                 updateStatusDisplay('life-led', 'life-badge', payload.status);
                 break;
-            case "mars/telemetry/airlock":
-                document.getElementById('airlock-val').innerText = `${value} ${payload.unit}`;
-                updateStatusDisplay('airlock-led', 'airlock-badge', payload.status);
-                break;    
-            default:
-                break;
+            }
         }
     } catch (e) {
         console.error("Error parsing MQTT message:", e);
