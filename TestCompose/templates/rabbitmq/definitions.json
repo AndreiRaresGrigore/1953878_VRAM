@@ -7,7 +7,7 @@
     },
     {
       "name": "ingestion_service",
-      "password": "ingestion_pass",
+      "password": "mqt",
       "tags": ""
     },
     {
@@ -98,21 +98,21 @@
       "vhost": "/",
       "destination": "automation.sensor.queue",
       "destination_type": "queue",
-      "routing_key": "sensor.#"
+      "routing_key": "sensor/#"
     },
     {
       "source": "sensor.events",
       "vhost": "/",
       "destination": "state.sensor.queue",
       "destination_type": "queue",
-      "routing_key": "sensor.#"
+      "routing_key": "sensor/#"
     },
     {
       "source": "actuator.commands",
       "vhost": "/",
       "destination": "actuator.command.queue",
       "destination_type": "queue",
-      "routing_key": "actuator.#"
+      "routing_key": "actuator/#"
     }
   ]
 }

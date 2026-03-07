@@ -2,11 +2,15 @@ services:
 
   simulator:
     image: mars-iot-simulator:multiarch_v1
-
     ports:
       - "8080:8080"
     networks:
       - mars-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/discovery')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -16,23 +20,28 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
+      - "1883:1883"
     networks:
       - mars-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   ingestion-service:
     build: ./sources/ingestion-service
     volumes:
-    - ./templates/ingestion-service/config.json:/app/config.json
+      - ./templates/ingestion-service/config.yaml:/app/config.yaml
     depends_on:
-      - rabbitmq
-      - simulator
+      rabbitmq:
+        condition: service_healthy
+      simulator:
+        condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
     networks:
       - mars-net
-
-volumes:
-  rabbitmq_data:
 
 networks:
   mars-net:

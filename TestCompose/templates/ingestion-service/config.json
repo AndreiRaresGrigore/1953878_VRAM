@@ -1,8 +1,0 @@
-{
-  "simulator_url": "http://simulator:8080",
-  "rabbitmq_host": "rabbitmq",
-  "queue_name": "sensor.events",
-  "rabbitmq_user": "ingestion_service",
-  "rabbitmq_pass": "ingestion_pass",
-  "polling_interval": 5
-}

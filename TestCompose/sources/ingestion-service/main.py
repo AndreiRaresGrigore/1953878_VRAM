@@ -3,11 +3,11 @@ import time
 import threading
 
 import pika
+import yaml
 import json
 
-# Carica la configurazione dal file
-with open("config.json", "r") as f:
-    config = json.load(f)
+with open("config.yaml", "r") as f:
+    config = yaml.safe_load(f)
 
 BASE_URL      = config["simulator_url"]
 RABBITMQ_HOST = config["rabbitmq_host"]
@@ -18,13 +18,32 @@ RABBITMQ_PASS = config["rabbitmq_pass"]
 RABBITMQ_EXCHANGE = config["queue_name"]
 
 credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
-connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host=RABBITMQ_HOST, credentials=credentials)
-)
+
+def connect_rabbit():
+
+    while True:
+        try:
+            credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
+
+            connection = pika.BlockingConnection(
+                pika.ConnectionParameters(
+                    host=RABBITMQ_HOST,
+                    credentials=credentials
+                )
+            )
+
+            print("[RabbitMQ] Connesso")
+            return connection
+
+        except pika.exceptions.AMQPConnectionError:
+            print("[RabbitMQ] In attesa del broker...")
+            time.sleep(5)
+
+connection = connect_rabbit()
 channel = connection.channel()
 
 def pubblica_evento(sensor_id, evento):
-    routing_key = f"sensor.{sensor_id}"
+    routing_key = f"sensor/{sensor_id}"
 
     channel.basic_publish(
         exchange=RABBITMQ_EXCHANGE,
@@ -144,11 +163,11 @@ def polling_loop():
 TOPIC_TELEMETRIA = [
     "mars/telemetry/solar_array",
     "mars/telemetry/radiation",
-    #"mars/telemetry/life_support",
-    #"mars/telemetry/thermal_loop",
-    #"mars/telemetry/power_bus",
-    #"mars/telemetry/power_consumption",
-    #"mars/telemetry/airlock",
+    "mars/telemetry/life_support",
+    "mars/telemetry/thermal_loop",
+    "mars/telemetry/power_bus",
+    "mars/telemetry/power_consumption",
+    "mars/telemetry/airlock",
 ]
 
 def ascolta_topic(topic):
@@ -170,7 +189,7 @@ def ascolta_topic(topic):
                             "timestamp": dati_grezzi.get("event_time", ""),
                         }
                         print(f"[SSE] {evento}")
-                        pubblica_evento(topic.replace("/", "."), evento)
+                        pubblica_evento(topic, evento)
     except Exception as e:
         print(f"[ERRORE] Topic {topic}: {e}")
 
