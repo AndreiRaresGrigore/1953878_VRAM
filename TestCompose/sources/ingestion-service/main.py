@@ -5,14 +5,21 @@ import yaml
 import json
 import paho.mqtt.client as mqtt
 
+from normalizer import normalizza_rest, normalizza_telemetria, to_list
+
+# ============================================================
+# CONFIGURAZIONE
+# ============================================================
+
 with open("config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
-BASE_URL      = config["simulator_url"]
-MQTT_HOST     = config["rabbitmq_host"]
-MQTT_PORT     = config.get("mqtt_port", 1883)
-MQTT_USER     = config["rabbitmq_user"]
-MQTT_PASS     = config["rabbitmq_pass"]
+BASE_URL  = config["simulator_url"]
+MQTT_HOST = config["rabbitmq_host"]
+MQTT_PORT = config.get("mqtt_port", 1883)
+MQTT_USER = config["rabbitmq_user"]
+MQTT_PASS = config["rabbitmq_pass"]
+POLL_INTERVAL = config.get("polling_interval", 5)
 
 # ============================================================
 # CONNESSIONE MQTT
@@ -21,30 +28,29 @@ MQTT_PASS     = config["rabbitmq_pass"]
 def connect_mqtt():
     client = mqtt.Client()
     client.username_pw_set(MQTT_USER, MQTT_PASS)
-
     while True:
         try:
             client.connect(MQTT_HOST, MQTT_PORT, 60)
-            print("[MQTT] Connesso al broker")
+            print(f"[MQTT] Connesso a {MQTT_HOST}:{MQTT_PORT}")
             return client
         except Exception:
             print("[MQTT] Connessione fallita, retry tra 5s...")
             time.sleep(5)
 
 mqtt_client = connect_mqtt()
-mqtt_client.loop_start()  # thread di background per gestire ping/keepalive
+mqtt_client.loop_start()
 
 # ============================================================
-# PUBBLICAZIONE EVENTI
+# PUBBLICAZIONE
 # ============================================================
 
 def pubblica_evento(sensor_id, evento):
     topic = f"sensor/{sensor_id}"
-    payload = json.dumps(evento)
-    mqtt_client.publish(topic, payload, qos=1)  # QoS=1 assicura almeno 1 consegna
+    mqtt_client.publish(topic, json.dumps(evento), qos=1)
+    print(f"[PUB] {evento['sensor_id']} | {evento['metric']} = {evento['value']} {evento['unit']}")
 
 # ============================================================
-# NORMALIZZAZIONE DATI
+# SENSORI REST
 # ============================================================
 
 SENSORI_REST = [
@@ -58,87 +64,37 @@ SENSORI_REST = [
     {"id": "air_quality_pm25",       "schema": "rest.particulate.v1"},
 ]
 
-def normalizza(sensor_id, schema, dati_grezzi):
-    if schema == "rest.scalar.v1":
-        return {
-            "sensor_id":  sensor_id,
-            "type":       "rest",
-            "metric":     dati_grezzi["metric"],
-            "value":      dati_grezzi["value"],
-            "unit":       dati_grezzi["unit"],
-            "status":     dati_grezzi["status"],
-            "timestamp":  dati_grezzi["captured_at"],
-        }
-    elif schema == "rest.chemistry.v1":
-        return {
-            "sensor_id": sensor_id,
-            "type": "rest",
-            "metric": "chemistry",
-            "measurements": dati_grezzi["measurements"],
-            "status": dati_grezzi["status"],
-            "timestamp": dati_grezzi["captured_at"],
-        }
-    elif schema == "rest.level.v1":
-        return {
-            "sensor_id": sensor_id,
-            "type": "rest",
-            "metric": "level",
-            "value": dati_grezzi["level_pct"],
-            "unit": "%",
-            "value_liters": dati_grezzi["level_liters"],
-            "status": dati_grezzi["status"],
-            "timestamp": dati_grezzi["captured_at"],
-        }
-    elif schema == "rest.particulate.v1":
-        return {
-            "sensor_id": sensor_id,
-            "type": "rest",
-            "metric": "particulate",
-            "pm1": dati_grezzi["pm1_ug_m3"],
-            "pm25": dati_grezzi["pm25_ug_m3"],
-            "pm10": dati_grezzi["pm10_ug_m3"],
-            "unit": "ug/m3",
-            "status": dati_grezzi["status"],
-            "timestamp": dati_grezzi["captured_at"],
-        }
-
-# ============================================================
-# POLLING REST
-# ============================================================
-
 def leggi_sensore(sensor_id, schema):
     try:
         url = f"{BASE_URL}/api/sensors/{sensor_id}"
-        response = requests.get(url, timeout=5)
-        dati_grezzi = response.json()
-        evento = normalizza(sensor_id, schema, dati_grezzi)
-        print(f"[REST] {evento}")
-        pubblica_evento(sensor_id, evento)
+        dati_grezzi = requests.get(url, timeout=5).json()
+        for evento in to_list(normalizza_rest(sensor_id, schema, dati_grezzi)):
+            pubblica_evento(sensor_id, evento)
     except Exception as e:
-        print(f"[ERRORE] Sensore {sensor_id}: {e}")
+        print(f"[ERRORE REST] {sensor_id}: {e}")
 
 def polling_loop():
     print("[REST] Polling avviato...")
     while True:
         for sensore in SENSORI_REST:
             leggi_sensore(sensore["id"], sensore["schema"])
-        time.sleep(5)
+        time.sleep(POLL_INTERVAL)
 
 # ============================================================
 # TELEMETRIA SSE
 # ============================================================
 
 TOPIC_TELEMETRIA = [
-    "mars/telemetry/solar_array",
-    "mars/telemetry/radiation",
-    "mars/telemetry/life_support",
-    "mars/telemetry/thermal_loop",
-    "mars/telemetry/power_bus",
-    "mars/telemetry/power_consumption",
-    "mars/telemetry/airlock",
+    {"id": "mars/telemetry/solar_array",      "schema": "topic.power.v1"},
+    {"id": "mars/telemetry/radiation",         "schema": "topic.environment.v1"},
+    {"id": "mars/telemetry/life_support",      "schema": "topic.environment.v1"},
+    {"id": "mars/telemetry/thermal_loop",      "schema": "topic.thermal_loop.v1"},
+    {"id": "mars/telemetry/power_bus",         "schema": "topic.power.v1"},
+    {"id": "mars/telemetry/power_consumption", "schema": "topic.power.v1"},
+    {"id": "mars/telemetry/airlock",           "schema": "topic.airlock.v1"},
 ]
 
-def ascolta_topic(topic):
+def ascolta_topic(topic, schema):
     url = f"{BASE_URL}/api/telemetry/stream/{topic}"
     print(f"[SSE] Connesso a {topic}")
     try:
@@ -148,21 +104,19 @@ def ascolta_topic(topic):
                     line = line.decode("utf-8")
                     if line.startswith("data:"):
                         dati_grezzi = json.loads(line[5:].strip())
-                        evento = {
-                            "sensor_id": topic,
-                            "type": "telemetry",
-                            "data": dati_grezzi,
-                            "timestamp": dati_grezzi.get("event_time", ""),
-                        }
-                        print(f"[SSE] {evento}")
-                        pubblica_evento(topic, evento)
+                        for evento in to_list(normalizza_telemetria(topic, schema, dati_grezzi)):
+                            pubblica_evento(topic, evento)
     except Exception as e:
-        print(f"[ERRORE] Topic {topic}: {e}")
+        print(f"[ERRORE SSE] {topic}: {e}")
 
 def avvia_telemetria():
-    for topic in TOPIC_TELEMETRIA:
-        t = threading.Thread(target=ascolta_topic, args=(topic,), daemon=True)
-        t.start()
+    for t in TOPIC_TELEMETRIA:
+        thread = threading.Thread(
+            target=ascolta_topic,
+            args=(t["id"], t["schema"]),
+            daemon=True
+        )
+        thread.start()
 
 # ============================================================
 # AVVIO
