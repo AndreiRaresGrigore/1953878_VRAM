@@ -156,3 +156,14 @@ body {
 
 .led-green { background-color: #34d399; box-shadow: 0 0 8px #34d399; }
 .led-red { background-color: #f87171; box-shadow: 0 0 8px #f87171; }
+
+/* Stile per l'orario di ultimo aggiornamento */
+.last-updated {
+    font-size: 0.7rem;
+    color: #888;
+    margin-top: auto; /* Spinge il testo sempre verso il basso */
+    padding-top: 10px;
+    border-top: 1px dashed #ccc;
+    text-align: right;
+    font-weight: normal;
+}
