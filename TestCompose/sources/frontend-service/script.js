@@ -4,11 +4,10 @@
 const statusBtn = document.getElementById('connection-status');
 const lastUpdatedTimes = {};
 
-// URL delle API del Simulatore per il polling degli attuatori
 const ACTUATORS_API_URL = 'http://localhost:8080/api/actuators';
+const ENGINE_API_URL = 'http://localhost:8081/api/rules';
 
 const timeElementMap = {
-    // Sensori
     "greenhouse_temperature": "temp-time",
     "corridor_pressure": "press-time",
     "water_tank_level": "water-time",
@@ -24,14 +23,13 @@ const timeElementMap = {
     "mars/telemetry/radiation": "rad-time",
     "mars/telemetry/life_support": "life-time",
     "mars/telemetry/airlock": "airlock-time",
-    
-    // Attuatori
     "cooling_fan": "fan-time",
     "entrance_humidifier": "humidifier-time",
     "hall_ventilation": "vent-time",
     "habitat_heater": "heater-time"
 };
 
+// Mappa aggiornata per il menu a tendina delle Automation Rules!
 const sensorMetricsMap = {
     "greenhouse_temperature": ["temperature_c"],
     "entrance_humidity": ["humidity_pct"],
@@ -40,10 +38,13 @@ const sensorMetricsMap = {
     "water_tank_level": ["fill_percentage", "level_liters"],
     "air_quality_pm25": ["pm1", "pm25", "pm10"],
     "hydroponic_ph": ["ph"],
-    "mars/telemetry/solar_array": ["power_kw"],
+    "mars/telemetry/solar_array": ["power_kw", "voltage_v", "current_a", "cumulative_kwh"],
+    "mars/telemetry/power_bus": ["power_kw", "voltage_v", "current_a", "cumulative_kwh"],
+    "mars/telemetry/power_consumption": ["power_kw", "voltage_v", "current_a", "cumulative_kwh"],
     "mars/telemetry/radiation": ["radiation_usv_h"],
     "mars/telemetry/life_support": ["oxygen_percent"],
-    "mars/telemetry/thermal_loop": ["temperature_c"]
+    "mars/telemetry/thermal_loop": ["temperature_c", "flow_l_min"],
+    "mars/telemetry/airlock": ["cycles_per_hour"]
 };
 
 // ==========================================
@@ -68,40 +69,204 @@ function updateTimeDisplay(timeId) {
     }
 }
 
-// Stile per i Sensori
 function updateStatusDisplay(ledId, badgeId, status) {
     const led = document.getElementById(ledId);
     const badge = document.getElementById(badgeId);
     if (!led) return;
-    
     led.classList.remove('led-green', 'led-red');
-    if (badge) {
-        badge.style.display = 'none';
-        badge.innerText = '';
-    }
-    
-    if (!status) {
-        led.classList.add('led-green');
-        return;
-    }
+    if (badge) { badge.style.display = 'none'; badge.innerText = ''; }
+    if (!status) { led.classList.add('led-green'); return; }
 
     const s = status.toString().toUpperCase();
-
     if (s === 'WARNING' || s === 'ERROR') {
         led.classList.add('led-red');
         if (badge) {
-            badge.innerText = s;
-            badge.style.display = 'inline-block';
-            badge.style.backgroundColor = 'var(--color-yellow)';
+            badge.innerText = s; badge.style.display = 'inline-block'; badge.style.backgroundColor = 'var(--color-yellow)';
         }
     } else {
         led.classList.add('led-green');
         if (s !== 'OK' && badge) {
-            badge.innerText = s;
-            badge.style.display = 'inline-block';
-            badge.style.backgroundColor = 'var(--color-blue)';
+            badge.innerText = s; badge.style.display = 'inline-block'; badge.style.backgroundColor = 'var(--color-blue)';
         }
     }
+}
+
+function updateActuatorDisplay(ledId, state) {
+    const led = document.getElementById(ledId);
+    if (!led) return;
+    led.classList.remove('led-green', 'led-red');
+    if (state === 'ON') led.classList.add('led-green');
+    else if (state === 'OFF') led.classList.add('led-red'); 
+}
+
+// ==========================================
+// 3. POLLING ATTUATORI VIA REST
+// ==========================================
+async function fetchActuators() {
+    try {
+        const response = await fetch(ACTUATORS_API_URL);
+        if (!response.ok) return;
+        const data = await response.json();
+        for (const [actuatorName, state] of Object.entries(data.actuators)) {
+            const timeId = timeElementMap[actuatorName];
+            if (timeId) { lastUpdatedTimes[timeId] = new Date(); updateTimeDisplay(timeId); }
+            switch(actuatorName) {
+                case "cooling_fan": document.getElementById('fan-val').innerText = state; updateActuatorDisplay('fan-led', state); break;
+                case "entrance_humidifier": document.getElementById('humidifier-val').innerText = state; updateActuatorDisplay('humidifier-led', state); break;
+                case "hall_ventilation": document.getElementById('vent-val').innerText = state; updateActuatorDisplay('vent-led', state); break;
+                case "habitat_heater": document.getElementById('heater-val').innerText = state; updateActuatorDisplay('heater-led', state); break;
+            }
+        }
+    } catch (error) {}
+}
+fetchActuators(); setInterval(fetchActuators, 5000);
+
+// ==========================================
+// 4. CONFIGURAZIONE E RICEZIONE MQTT
+// ==========================================
+const client = mqtt.connect('ws://mars_admin:mars_admin@localhost:15675/ws', {
+    reconnectPeriod: 5000, clientId: 'mars_dashboard_' + Math.random().toString(16).substr(2, 8), keepalive: 15, clean: true
+});
+
+client.on('connect', () => {
+    statusBtn.innerText = "Connected (Live)"; statusBtn.style.backgroundColor = "var(--color-green)";
+    client.subscribe('#');
+});
+
+client.on('message', (topic, message) => {
+    try {
+        const payload = JSON.parse(message.toString());
+        
+        // Timer update
+        const timeId = timeElementMap[payload.sensor_id];
+        if (timeId) {
+            lastUpdatedTimes[timeId] = payload.captured_at ? new Date(payload.captured_at) : new Date();
+            updateTimeDisplay(timeId); 
+        }
+
+        // Helpers per estrarre valori in modo sicuro dall'array
+        const getMeasure = (pName) => payload.measurements ? payload.measurements.find(m => m.parameter === pName) : null;
+        const getFirstMeasure = () => payload.measurements && payload.measurements.length > 0 ? payload.measurements[0] : null;
+
+        // Smistamento Switch con destrutturazione esplicita delle metriche
+        switch(payload.sensor_id) {
+            
+            // -- REST SENSORS --
+            case "greenhouse_temperature": {
+                const m = getMeasure("temperature_c") || getFirstMeasure();
+                if (m) document.getElementById('temp-val').innerText = `Temperature: ${m.value} ${m.unit}`;
+                updateStatusDisplay('temp-led', 'temp-badge', payload.status); break;
+            }
+            case "corridor_pressure": {
+                const m = getMeasure("pressure_kpa") || getFirstMeasure();
+                if (m) document.getElementById('press-val').innerText = `Pressure: ${m.value} ${m.unit}`;
+                updateStatusDisplay('press-led', 'press-badge', payload.status); break;
+            }
+            case "water_tank_level": {
+                const perc = getMeasure("fill_percentage"); const lit = getMeasure("level_liters");
+                if (perc) document.getElementById('water-perc-val').innerText = `${perc.value} ${perc.unit}`;
+                if (lit) document.getElementById('water-liters-val').innerText = `${lit.value} ${lit.unit}`;
+                updateStatusDisplay('water-led', 'water-badge', payload.status); break;
+            }
+            case "co2_hall": {
+                const m = getMeasure("co2_ppm") || getFirstMeasure();
+                if (m) document.getElementById('co2-val').innerText = `CO2: ${m.value} ${m.unit}`;
+                updateStatusDisplay('co2-led', 'co2-badge', payload.status); break;
+            }
+            case "entrance_humidity": {
+                const m = getMeasure("humidity_pct") || getFirstMeasure();
+                if (m) document.getElementById('hum-val').innerText = `Humidity: ${m.value} ${m.unit}`;
+                updateStatusDisplay('hum-led', 'hum-badge', payload.status); break;
+            }
+            case "air_quality_pm25": {
+                const pm1 = getMeasure("pm1"); const pm25 = getMeasure("pm25"); const pm10 = getMeasure("pm10");
+                if (pm1) document.getElementById('pm1-val').innerText = `${pm1.value} ${pm1.unit}`;
+                if (pm25) document.getElementById('pm25-val').innerText = `${pm25.value} ${pm25.unit}`;
+                if (pm10) document.getElementById('pm10-val').innerText = `${pm10.value} ${pm10.unit}`;
+                updateStatusDisplay('pm-led', 'pm-badge', payload.status); break;
+            }
+            case "air_quality_voc": {
+                const m = getMeasure("voc_index") || getMeasure("voc") || getFirstMeasure();
+                if (m) document.getElementById('voc-val').innerText = `VOC: ${m.value} ${m.unit}`;
+                updateStatusDisplay('voc-led', 'voc-badge', payload.status); break;
+            }
+            case "hydroponic_ph": {
+                const m = getMeasure("ph") || getFirstMeasure();
+                if (m) document.getElementById('ph-val').innerText = `pH: ${m.value}${m.unit ? ' '+m.unit : ''}`;
+                updateStatusDisplay('ph-led', 'ph-badge', payload.status); break;
+            }
+
+            // -- TELEMETRY SENSORS --
+            case "mars/telemetry/solar_array": {
+                const p = getMeasure("power_kw"); const v = getMeasure("voltage_v"); const a = getMeasure("current_a"); const c = getMeasure("cumulative_kwh");
+                if (p) document.getElementById('solar-p-val').innerText = `${p.value} ${p.unit}`;
+                if (v) document.getElementById('solar-v-val').innerText = `${v.value} ${v.unit}`;
+                if (a) document.getElementById('solar-a-val').innerText = `${a.value} ${a.unit}`;
+                if (c) document.getElementById('solar-c-val').innerText = `${c.value} ${c.unit}`;
+                updateStatusDisplay('solar-led', 'solar-badge', payload.status); break;
+            }
+            case "mars/telemetry/power_bus": {
+                const p = getMeasure("power_kw"); const v = getMeasure("voltage_v"); const a = getMeasure("current_a"); const c = getMeasure("cumulative_kwh");
+                if (p) document.getElementById('bus-p-val').innerText = `${p.value} ${p.unit}`;
+                if (v) document.getElementById('bus-v-val').innerText = `${v.value} ${v.unit}`;
+                if (a) document.getElementById('bus-a-val').innerText = `${a.value} ${a.unit}`;
+                if (c) document.getElementById('bus-c-val').innerText = `${c.value} ${c.unit}`;
+                updateStatusDisplay('bus-led', 'bus-badge', payload.status); break;
+            }
+            case "mars/telemetry/power_consumption": {
+                const p = getMeasure("power_kw"); const v = getMeasure("voltage_v"); const a = getMeasure("current_a"); const c = getMeasure("cumulative_kwh");
+                if (p) document.getElementById('cons-p-val').innerText = `${p.value} ${p.unit}`;
+                if (v) document.getElementById('cons-v-val').innerText = `${v.value} ${v.unit}`;
+                if (a) document.getElementById('cons-a-val').innerText = `${a.value} ${a.unit}`;
+                if (c) document.getElementById('cons-c-val').innerText = `${c.value} ${c.unit}`;
+                updateStatusDisplay('cons-led', 'cons-badge', payload.status); break;
+            }
+            case "mars/telemetry/thermal_loop": {
+                const t = getMeasure("temperature_c"); const f = getMeasure("flow_l_min");
+                if (t) document.getElementById('thermal-t-val').innerText = `${t.value} ${t.unit}`;
+                if (f) document.getElementById('thermal-f-val').innerText = `${f.value} ${f.unit}`;
+                updateStatusDisplay('thermal-led', 'thermal-badge', payload.status); break;
+            }
+            case "mars/telemetry/radiation": {
+                const m = getMeasure("radiation_usv_h") || getFirstMeasure();
+                if (m) document.getElementById('rad-val').innerText = `Radiation: ${m.value} ${m.unit}`;
+                updateStatusDisplay('rad-led', 'rad-badge', payload.status); break;
+            }
+            case "mars/telemetry/life_support": {
+                // Aggiunta esplicita della scritta per l'ossigeno richiesta
+                const m = getMeasure("oxygen_percent") || getFirstMeasure();
+                if (m) document.getElementById('life-val').innerText = `Oxygen percentage: ${m.value} ${m.unit}`;
+                updateStatusDisplay('life-led', 'life-badge', payload.status); break;
+            }
+            case "mars/telemetry/airlock": {
+                const m = getMeasure("cycles_per_hour") || getFirstMeasure();
+                if (m) document.getElementById('airlock-val').innerText = `Rate: ${m.value} ${m.unit}`;
+                updateStatusDisplay('airlock-led', 'airlock-badge', payload.status); break;
+            }
+        }
+        
+    } catch (e) {
+        console.error("Error parsing MQTT message:", e);
+    }
+});
+
+setInterval(() => {
+    for (const timeId of Object.values(timeElementMap)) updateTimeDisplay(timeId);
+}, 10000);
+
+client.on('error', () => { statusBtn.innerText = "Connection Error"; statusBtn.style.backgroundColor = "lightcoral"; });
+client.on('close', () => { statusBtn.innerText = "Disconnected"; statusBtn.style.backgroundColor = "var(--bg-color)"; });
+
+
+// ==========================================
+// 5. GESTIONE REGOLE AUTOMAZIONE (TABS E API)
+// ==========================================
+function switchTab(tabName) {
+    document.getElementById('view-dashboard').style.display = tabName === 'dashboard' ? 'block' : 'none';
+    document.getElementById('view-rules').style.display = tabName === 'rules' ? 'block' : 'none';
+    document.getElementById('tab-dashboard').classList.toggle('active', tabName === 'dashboard');
+    document.getElementById('tab-rules').classList.toggle('active', tabName === 'rules');
+    if (tabName === 'rules') fetchRules();
 }
 
 function updateMetricOptions() {
@@ -109,280 +274,37 @@ function updateMetricOptions() {
     const metricSelect = document.getElementById('rule-metric');
     const selectedSensor = sensorSelect.value;
     
-    metricSelect.innerHTML = ''; // Svuota opzioni precedenti
-    
+    metricSelect.innerHTML = ''; 
     if (sensorMetricsMap[selectedSensor]) {
         sensorMetricsMap[selectedSensor].forEach(metric => {
             const opt = document.createElement('option');
-            opt.value = metric;
-            opt.innerText = metric;
+            opt.value = metric; opt.innerText = metric;
             metricSelect.appendChild(opt);
         });
     } else {
-        const opt = document.createElement('option');
-        opt.value = "";
-        opt.innerText = "No metrics found";
-        metricSelect.appendChild(opt);
+        metricSelect.innerHTML = '<option value="">No metrics found</option>';
     }
 }
 
-// Stile semplificato per gli Attuatori (ON = Verde, OFF = Rosso)
-function updateActuatorDisplay(ledId, state) {
-    const led = document.getElementById(ledId);
-    if (!led) return;
-    
-    led.classList.remove('led-green', 'led-red');
-    if (state === 'ON') {
-        led.classList.add('led-green');
-    } else if (state === 'OFF') {
-        led.classList.add('led-red'); 
-    }
-}
-
-// ==========================================
-// 3. POLLING DEGLI ATTUATORI VIA REST
-// ==========================================
-async function fetchActuators() {
-    try {
-        const response = await fetch(ACTUATORS_API_URL);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
-        const data = await response.json();
-        const actuators = data.actuators;
-
-        for (const [actuatorName, state] of Object.entries(actuators)) {
-            // 1. Aggiorna il tracker del tempo
-            const timeId = timeElementMap[actuatorName];
-            if (timeId) {
-                lastUpdatedTimes[timeId] = new Date();
-                updateTimeDisplay(timeId);
-            }
-
-            // 2. Smista ai riquadri degli attuatori
-            switch(actuatorName) {
-                case "cooling_fan":
-                    document.getElementById('fan-val').innerText = state;
-                    updateActuatorDisplay('fan-led', state);
-                    break;
-                case "entrance_humidifier":
-                    document.getElementById('humidifier-val').innerText = state;
-                    updateActuatorDisplay('humidifier-led', state);
-                    break;
-                case "hall_ventilation":
-                    document.getElementById('vent-val').innerText = state;
-                    updateActuatorDisplay('vent-led', state);
-                    break;
-                case "habitat_heater":
-                    document.getElementById('heater-val').innerText = state;
-                    updateActuatorDisplay('heater-led', state);
-                    break;
-            }
-        }
-    } catch (error) {
-        console.error("Error fetching actuators:", error);
-    }
-}
-
-// Avvia il polling subito e poi ogni 5 secondi
-fetchActuators();
-setInterval(fetchActuators, 5000);
-
-// ==========================================
-// 4. CONFIGURAZIONE E CONNESSIONE MQTT (Per i Sensori)
-// ==========================================
-const brokerUrl = 'ws://mars_admin:mars_admin@localhost:15675/ws'; 
-
-const client = mqtt.connect(brokerUrl, {
-    reconnectPeriod: 5000,
-    clientId: 'mars_dashboard_' + Math.random().toString(16).substr(2, 8),
-    keepalive: 15,
-    clean: true
-});
-
-client.on('connect', () => {
-    console.log("Connected to RabbitMQ via WebSockets!");
-    statusBtn.innerText = "Connected (Live)";
-    statusBtn.style.backgroundColor = "var(--color-green)";
-    client.subscribe('#', (err) => {
-        if (err) console.error("Subscription error:", err);
-    });
-});
-
-// ==========================================
-// 5. GESTIONE RICEZIONE MESSAGGI (Solo Sensori)
-// ==========================================
-client.on('message', (topic, message) => {
-    try {
-        const payload = JSON.parse(message.toString());
-        console.log(`[Live Data] ${topic}:`, payload);
-        console.log('[Live Data] ${topic}:', payload);
-
-        // 1. GESTIONE DEL TEMPO (Usando captured_at se disponibile)
-        const timeId = timeElementMap[payload.sensor_id];
-        if (timeId) {
-            lastUpdatedTimes[timeId] = payload.captured_at ? new Date(payload.captured_at) : new Date();
-            updateTimeDisplay(timeId); 
-        }
-
-        // Helper per cercare un parametro specifico nell'array measurements
-        const getMeasure = (paramName) => payload.measurements.find(m => m.parameter === paramName);
-
-        // 2. LOGICA DI AGGIORNAMENTO UI
-        switch(payload.sensor_id) {
-            case "greenhouse_temperature": {
-                const m = getMeasure("temperature");
-                if (m) document.getElementById('temp-val').innerText = `${m.value} ${m.unit}`;
-                updateStatusDisplay('temp-led', 'temp-badge', payload.status);
-                break;
-            }
-            case "corridor_pressure": {
-                const m = getMeasure("pressure");
-                if (m) document.getElementById('press-val').innerText = `${m.value} ${m.unit}`;
-                updateStatusDisplay('press-led', 'press-badge', payload.status);
-                break;
-            }
-            case "water_tank_level": {
-                const perc = getMeasure("fill_percentage");
-                const liters = getMeasure("level_liters");
-                if (perc) document.getElementById('water-perc-val').innerText = `${perc.value} ${perc.unit}`;
-                if (liters) document.getElementById('water-liters-val').innerText = `${liters.value} ${liters.unit}`;
-                updateStatusDisplay('water-led', 'water-badge', payload.status);
-                break;
-            }
-            case "co2_hall": {
-                const m = getMeasure("co2_level");
-                if (m) document.getElementById('co2-val').innerText = `${m.value} ${m.unit}`;
-                updateStatusDisplay('co2-led', 'co2-badge', payload.status);
-                break;
-            }
-            case "entrance_humidity": {
-                const m = getMeasure("humidity");
-                if (m) document.getElementById('hum-val').innerText = `${m.value} ${m.unit}`;
-                updateStatusDisplay('hum-led', 'hum-badge', payload.status);
-                break;
-            }
-            case "air_quality_pm25": {
-                const pm1 = getMeasure("pm1.0");
-                const pm25 = getMeasure("pm2.5");
-                const pm10 = getMeasure("pm10");
-                if (pm1) document.getElementById('pm1-val').innerText = `${pm1.value} ${pm1.unit}`;
-                if (pm25) document.getElementById('pm25-val').innerText = `${pm25.value} ${pm25.unit}`;
-                if (pm10) document.getElementById('pm10-val').innerText = `${pm10.value} ${pm10.unit}`;
-                updateStatusDisplay('pm-led', 'pm-badge', payload.status);
-                break;
-            }
-            case "air_quality_voc": {
-                const m = getMeasure("voc_index");
-                if (m) document.getElementById('voc-val').innerText = `${m.value} ${m.unit}`;
-                updateStatusDisplay('voc-led', 'voc-badge', payload.status);
-                break;
-            }
-            case "hydroponic_ph": {
-                const m = getMeasure("ph");
-                if (m) document.getElementById('ph-val').innerText = `${m.value}${m.unit ? ' ' + m.unit : ''}`;
-                updateStatusDisplay('ph-led', 'ph-badge', payload.status);
-                break;
-            }
-            // Telemetria (Esempi basati sui parametri comuni)
-            case "mars/telemetry/solar_array":
-            case "mars/telemetry/power_bus":
-            case "mars/telemetry/power_consumption":
-            case "mars/telemetry/thermal_loop":
-            case "mars/telemetry/radiation":
-            case "mars/telemetry/airlock": {
-                const m = payload.measurements[0]; // Spesso hanno un solo valore primario
-                const targetId = timeId.replace('-time', '-val');
-                if (m && document.getElementById(targetId)) {
-                    document.getElementById(targetId).innerText = `${m.value} ${m.unit}`;
-                }
-                const ledId = timeId.replace('-time', '-led');
-                const badgeId = timeId.replace('-time', '-badge');
-                updateStatusDisplay(ledId, badgeId, payload.status);
-                break;
-            }
-            case "mars/telemetry/life_support": {
-                const oxy = getMeasure("oxygen_percent");
-                if (oxy) document.getElementById('life-val').innerText = `O2: ${oxy.value} ${oxy.unit}`;
-                updateStatusDisplay('life-led', 'life-badge', payload.status);
-                break;
-            }
-        }
-    } catch (e) {
-        console.error("Error parsing MQTT message:", e);
-    }
-});
-
-// ==========================================
-// 6. LOOP TEMPORALE E GESTIONE ERRORI
-// ==========================================
-setInterval(() => {
-    for (const timeId of Object.values(timeElementMap)) {
-        updateTimeDisplay(timeId);
-    }
-}, 10000);
-
-client.on('error', (err) => {
-    console.error("MQTT Error:", err);
-    statusBtn.innerText = "Connection Error";
-    statusBtn.style.backgroundColor = "lightcoral";
-});
-
-client.on('close', () => {
-    statusBtn.innerText = "Disconnected";
-    statusBtn.style.backgroundColor = "var(--bg-color)";
-    const leds = document.querySelectorAll('.status-led');
-    leds.forEach(led => led.classList.remove('led-green', 'led-red'));
-});
-
-// ==========================================
-// 7. GESTIONE TAB (NAVIGAZIONE)
-// ==========================================
-function switchTab(tabName) {
-    // Gestione visualizzazione div
-    document.getElementById('view-dashboard').style.display = tabName === 'dashboard' ? 'block' : 'none';
-    document.getElementById('view-rules').style.display = tabName === 'rules' ? 'block' : 'none';
-    
-    // Gestione stile bottoni
-    document.getElementById('tab-dashboard').classList.toggle('active', tabName === 'dashboard');
-    document.getElementById('tab-rules').classList.toggle('active', tabName === 'rules');
-
-    // Se apriamo le regole, aggiorniamo la lista dal database
-    if (tabName === 'rules') {
-        fetchRules();
-    }
-}
-
-// ==========================================
-// 8. AUTOMATION RULES MANAGEMENT (CRUD)
-// ==========================================
-// NOTA: Assicurati che il tuo automation-engine esponga queste rotte sulla porta 8000
-const ENGINE_API_URL = 'http://localhost:8081/api/rules';
-
-// Carica le regole dal Database
 async function fetchRules() {
     const listContainer = document.getElementById('rules-list');
     try {
         const response = await fetch(ENGINE_API_URL);
         if (!response.ok) throw new Error("Errore nel caricamento delle regole");
-        
         const rules = await response.json();
         listContainer.innerHTML = ''; 
-        
         if (rules.length === 0) {
             listContainer.innerHTML = '<p style="color: #666;">No active rules found. Create one above.</p>';
             return;
         }
-
         rules.forEach(rule => {
             const ruleElement = document.createElement('div');
             ruleElement.className = 'rule-card';
-            // Visualizza metrica se presente
             const metricDisplay = rule.metric ? `.<span class="highlight">${rule.metric}</span>` : '';
             ruleElement.innerHTML = `
                 <div class="rule-logic">
                     IF <span class="highlight">${rule.sensor_id}</span>${metricDisplay} 
-                    ${rule.operator} 
-                    <span class="highlight">${rule.threshold}</span> 
+                    ${rule.operator} <span class="highlight">${rule.threshold}</span> 
                     THEN SET <span class="highlight">${rule.actuator_name}</span> 
                     TO <span class="highlight">${rule.actuator_state}</span>
                 </div>
@@ -390,19 +312,14 @@ async function fetchRules() {
             `;
             listContainer.appendChild(ruleElement);
         });
-    } catch (error) {
-        console.error(error);
-        listContainer.innerHTML = '<p style="color: red;">⚠️ Cannot connect to Automation Engine API.</p>';
-    }
+    } catch (error) { listContainer.innerHTML = '<p style="color: red;">⚠️ Cannot connect to Automation Engine API.</p>'; }
 }
 
-// Invia una nuova regola al Database
 document.getElementById('add-rule-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-
     const newRule = {
         sensor_id: document.getElementById('rule-sensor').value,
-        metric: document.getElementById('rule-metric').value, // Prende il valore dal nuovo select
+        metric: document.getElementById('rule-metric').value,
         operator: document.getElementById('rule-operator').value,
         threshold: parseFloat(document.getElementById('rule-threshold').value),
         actuator_name: document.getElementById('rule-actuator').value,
@@ -412,36 +329,17 @@ document.getElementById('add-rule-form').addEventListener('submit', async (e) =>
 
     try {
         const response = await fetch(ENGINE_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newRule)
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newRule)
         });
-
-        if (response.ok) {
-            document.getElementById('rule-threshold').value = ''; 
-            fetchRules(); 
-        } else {
-            alert('Error adding rule. Check the Automation Engine logs.');
-        }
-    } catch (error) {
-        console.error("Errore salvataggio regola:", error);
-        alert('Cannot reach the Automation Engine.');
-    }
+        if (response.ok) { document.getElementById('rule-threshold').value = ''; fetchRules(); } 
+        else alert('Error adding rule.');
+    } catch (error) { alert('Cannot reach the Automation Engine.'); }
 });
 
-// Elimina una regola dal Database
 async function deleteRule(ruleId) {
-    if (!confirm('Are you sure you want to delete this automation rule?')) return;
-
+    if (!confirm('Are you sure?')) return;
     try {
-        const response = await fetch(`${ENGINE_API_URL}/${ruleId}`, {
-            method: 'DELETE'
-        });
-
-        if (response.ok) {
-            fetchRules(); // Ricarica la lista visiva
-        }
-    } catch (error) {
-        console.error("Errore eliminazione regola:", error);
-    }
+        const response = await fetch(`${ENGINE_API_URL}/${ruleId}`, { method: 'DELETE' });
+        if (response.ok) fetchRules(); 
+    } catch (error) {}
 }
