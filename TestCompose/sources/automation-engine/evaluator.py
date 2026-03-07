@@ -32,11 +32,30 @@ def _apply(value: float, operator: str, threshold: float) -> bool:
     return fn(value, threshold)
 
 def _extract(event: dict) -> tuple[str, float | None]:
-    """Return (metric, value) from either flat or nested event shape."""
-    # Nested shape: measurements is a dict
+    """Return (metric, value) from either flat or nested event shape.
+
+    Supported shapes:
+      Flat:       { "metric": "temperature_c", "value": 23.5, ... }
+      Dict:       { "measurements": {"metric": "temperature_c", "value": 23.5}, ... }
+      List (current normalizer):
+                  { "measurements": [{"parameter": "temperature_c", "value": 23.5}, ...], ... }
+    For the list shape the first measurement is used as the representative value;
+    evaluate_rules() iterates over all measurements so each metric gets checked.
+    """
     m = event.get("measurements")
+
+    # List shape — return first entry's (parameter, value) as the default;
+    # the caller iterates all entries separately via evaluate_rules().
+    if isinstance(m, list):
+        if not m:
+            return "", None
+        first = m[0]
+        return first.get("parameter", ""), first.get("value")
+
+    # Dict shape (legacy)
     if isinstance(m, dict):
-        return m.get("metric", ""), m.get("value")
+        return m.get("metric", m.get("parameter", "")), m.get("value")
+
     # Flat shape
     return event.get("metric", ""), event.get("value")
 
@@ -44,30 +63,44 @@ def evaluate_rules(event: dict, rules: list[dict]) -> list[dict]:
     """Return the list of rules whose conditions are satisfied by *event*."""
     triggered = []
     sensor_id = event.get("sensor_id", "")
-    metric, value = _extract(event)
 
-    if value is None:
-        return triggered
+    # Build a list of (metric, value) pairs to evaluate.
+    # Handles flat, dict, and list measurements shapes.
+    m = event.get("measurements")
+    if isinstance(m, list):
+        pairs = [(entry.get("parameter", ""), entry.get("value")) for entry in m]
+    elif isinstance(m, dict):
+        pairs = [(m.get("metric", m.get("parameter", "")), m.get("value"))]
+    else:
+        pairs = [(event.get("metric", ""), event.get("value"))]
 
-    try:
-        value = float(value)
-    except (TypeError, ValueError):
-        return triggered
+    already_triggered = set()  # avoid duplicate actuator commands per event
 
-    for rule in rules:
-        if rule["sensor_id"] != sensor_id:
-            continue
-        if rule["metric"] and rule["metric"] != metric:
+    for metric, value in pairs:
+        if value is None:
             continue
         try:
-            if _apply(value, rule["operator"], float(rule["threshold"])):
-                triggered.append(rule)
-                print(
-                    f"[RULE #{rule['id']}] {sensor_id}.{metric} {value} "
-                    f"{rule['operator']} {rule['threshold']} → "
-                    f"{rule['actuator_name']} = {rule['actuator_state']}"
-                )
-        except Exception as e:
-            print(f"[EVALUATOR] Rule {rule['id']} error: {e}")
+            value = float(value)
+        except (TypeError, ValueError):
+            continue
+
+        for rule in rules:
+            if rule["id"] in already_triggered:
+                continue
+            if rule["sensor_id"] != sensor_id:
+                continue
+            if rule["metric"] and rule["metric"] != metric:
+                continue
+            try:
+                if _apply(value, rule["operator"], float(rule["threshold"])):
+                    triggered.append(rule)
+                    already_triggered.add(rule["id"])
+                    print(
+                        f"[RULE #{rule['id']}] {sensor_id}.{metric} {value} "
+                        f"{rule['operator']} {rule['threshold']} → "
+                        f"{rule['actuator_name']} = {rule['actuator_state']}"
+                    )
+            except Exception as e:
+                print(f"[EVALUATOR] Rule {rule['id']} error: {e}")
 
     return triggered
