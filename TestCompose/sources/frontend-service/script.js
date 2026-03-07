@@ -4,13 +4,11 @@ const statusBtn = document.getElementById('connection-status');
 // ==========================================
 // CONFIGURAZIONE MQTT
 // ==========================================
-const brokerUrl = 'ws://mars_admin:mars_admin@localhost:15675/ws';
+const brokerUrl = 'ws://mars_admin:mars_admin@localhost:15675/ws'; // Usa la tua password reale
 
 const client = mqtt.connect(brokerUrl, {
     reconnectPeriod: 5000,
     clientId: 'mars_dashboard_' + Math.random().toString(16).substr(2, 8),
-    keepalive: 15,   // <-- Aggiungi questo: invia un ping ogni 15 secondi
-    clean: true      // <-- Opzionale, ma consigliato per le dashboard
 });
 
 // Funzione helper per aggiornare i LED
@@ -21,11 +19,11 @@ function updateLedStatus(ledId, status) {
     // Rimuove le classi precedenti
     led.classList.remove('led-green', 'led-red');
     
-    // Assumiamo che "ok" o uno status mancante indichi che va tutto bene
-    if (!status || status.toLowerCase() === 'ok') {
+    // Se lo status non c'è, o se è "ok" (ignorando maiuscole/minuscole), LED Verde.
+    // Altrimenti, per stati come "warning", "IDLE", o "DEPRESSURIZING", LED Rosso.
+    if (!status || status.toString().toLowerCase() === 'ok') {
         led.classList.add('led-green');
     } else {
-        // Qualsiasi altro stato (es. "error", "warning") accende il LED rosso
         led.classList.add('led-red');
     }
 }
@@ -50,11 +48,9 @@ client.on('connect', () => {
 client.on('message', (topic, message) => {
     try {
         const payload = JSON.parse(message.toString());
-        console.log(`[Nuovo Dato] ${topic}:`, payload);
+        // console.log(`[Nuovo Dato] ${topic}:`, payload); // Commentato per non intasare la console
 
-        // --- ADATTAMENTO AL NUOVO FORMATO INGESTION SERVICE ---
-        // Estraiamo 'value' e 'metric' dall'oggetto 'measurements' se esiste, 
-        // altrimenti fallback sui valori nella root
+        // Estrazione sicura dal nuovo formato del Normalizer
         const value = payload.measurements && payload.measurements.value !== undefined 
             ? payload.measurements.value 
             : payload.value;
@@ -63,68 +59,80 @@ client.on('message', (topic, message) => {
             ? payload.measurements.metric 
             : payload.metric;
 
-        // Controlliamo l'ID del sensore e aggiorniamo il riquadro + LED HTML corrispondente
+        // Smistamento ai vari riquadri
         switch(payload.sensor_id) {
+            
+            // --- SENSORI REST ---
             case "greenhouse_temperature":
                 document.getElementById('temp-val').innerText = `${value} ${payload.unit}`;
                 updateLedStatus('temp-led', payload.status);
                 break;
-                
             case "corridor_pressure":
                 document.getElementById('press-val').innerText = `${value} ${payload.unit}`;
                 updateLedStatus('press-led', payload.status);
                 break;
-                
             case "water_tank_level":
                 const waterValue = value !== undefined ? value : 0;
-                
-                if (metric === "fill_percentage") {
-                    document.getElementById('water-perc-val').innerText = `${waterValue} ${payload.unit}`;
-                } else if (metric === "level_liters") {
-                    document.getElementById('water-liters-val').innerText = `${waterValue} ${payload.unit}`;
-                }
-                
-                // Aggiorniamo il LED di stato
+                if (metric === "fill_percentage") document.getElementById('water-perc-val').innerText = `${waterValue} ${payload.unit}`;
+                else if (metric === "level_liters") document.getElementById('water-liters-val').innerText = `${waterValue} ${payload.unit}`;
                 updateLedStatus('water-led', payload.status);
                 break;
-                
             case "co2_hall":
                 document.getElementById('co2-val').innerText = `${value} ${payload.unit}`;
                 updateLedStatus('co2-led', payload.status);
                 break;
-                
             case "entrance_humidity":
                 document.getElementById('hum-val').innerText = `${value} ${payload.unit}`;
                 updateLedStatus('hum-led', payload.status);
                 break;
-                
             case "air_quality_pm25":
                 const pmValue = value !== undefined ? value : 0;
-                
-                // Usa includes() così funziona sia se arriva "pm1" sia se arriva "pm1_ug_m3"
-                if (metric.includes("pm1") && !metric.includes("pm10")) {
-                    document.getElementById('pm1-val').innerText = `${pmValue} ${payload.unit}`;
-                } else if (metric.includes("pm25")) {
-                    document.getElementById('pm25-val').innerText = `${pmValue} ${payload.unit}`;
-                } else if (metric.includes("pm10")) {
-                    document.getElementById('pm10-val').innerText = `${pmValue} ${payload.unit}`;
-                }
-                
+                if (metric.includes("pm1") && !metric.includes("pm10")) document.getElementById('pm1-val').innerText = `${pmValue} ${payload.unit}`;
+                else if (metric.includes("pm25")) document.getElementById('pm25-val').innerText = `${pmValue} ${payload.unit}`;
+                else if (metric.includes("pm10")) document.getElementById('pm10-val').innerText = `${pmValue} ${payload.unit}`;
                 updateLedStatus('pm-led', payload.status);
                 break;
-
             case "air_quality_voc":
                 document.getElementById('voc-val').innerText = `${value} ${payload.unit}`;
                 updateLedStatus('voc-led', payload.status);
                 break;
-                
             case "hydroponic_ph":
-                // Mostra il valore e l'unità di misura se presente
                 const unit = payload.unit ? ` ${payload.unit}` : '';
                 document.getElementById('ph-val').innerText = `${value}${unit}`;
                 updateLedStatus('ph-led', payload.status);
                 break;
                 
+            // --- STREAM TELEMETRICI ---
+            case "mars/telemetry/solar_array":
+                document.getElementById('solar-val').innerText = `${value} ${payload.unit}`;
+                updateLedStatus('solar-led', payload.status);
+                break;
+            case "mars/telemetry/power_bus":
+                document.getElementById('bus-val').innerText = `${value} ${payload.unit}`;
+                updateLedStatus('bus-led', payload.status);
+                break;
+            case "mars/telemetry/power_consumption":
+                document.getElementById('cons-val').innerText = `${value} ${payload.unit}`;
+                updateLedStatus('cons-led', payload.status);
+                break;
+            case "mars/telemetry/thermal_loop":
+                document.getElementById('thermal-val').innerText = `${value} ${payload.unit}`;
+                updateLedStatus('thermal-led', payload.status);
+                break;
+            case "mars/telemetry/radiation":
+                document.getElementById('rad-val').innerText = `${metric}: ${value} ${payload.unit}`;
+                updateLedStatus('rad-led', payload.status);
+                break;
+            case "mars/telemetry/life_support":
+                document.getElementById('life-val').innerText = `${metric}: ${value} ${payload.unit}`;
+                updateLedStatus('life-led', payload.status);
+                break;
+            case "mars/telemetry/airlock":
+                document.getElementById('airlock-val').innerText = `${value} ${payload.unit}`;
+                document.getElementById('airlock-status').innerText = payload.status;
+                updateLedStatus('airlock-led', payload.status);
+                break;    
+
             default:
                 break;
         }
@@ -145,10 +153,6 @@ client.on('error', (err) => {
 client.on('close', () => {
     statusBtn.innerText = "Disconnesso";
     statusBtn.style.backgroundColor = "var(--bg-color)";
-    
-    // Opzionale: rimette tutti i LED grigi se si disconnette
     const leds = document.querySelectorAll('.status-led');
-    leds.forEach(led => {
-        led.classList.remove('led-green', 'led-red');
-    });
+    leds.forEach(led => led.classList.remove('led-green', 'led-red'));
 });

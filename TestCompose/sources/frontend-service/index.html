@@ -139,6 +139,93 @@
         </div>
     </div>
     
+    <div class="dashboard-grid" style="margin-top: 3rem;">
+        <div class="neo-box data-panel" style="grid-column: 1 / -1; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+            <h3 class="data-panel-title">📡 Stream Telemetrici:</h3>
+            
+            <div class="sensor-card">
+                <div class="sensor-header">
+                    <div>
+                        <strong>☀️ Pannelli Solari</strong>
+                        <p style="margin: 0; color: #666; font-size: 0.8rem;">mars/telemetry/solar_array</p>
+                    </div>
+                    <span class="status-led" id="solar-led"></span>
+                </div>
+                <div class="sensor-value" id="solar-val">--</div>
+            </div>
+
+            <div class="sensor-card">
+                <div class="sensor-header">
+                    <div>
+                        <strong>🔋 Power Bus</strong>
+                        <p style="margin: 0; color: #666; font-size: 0.8rem;">mars/telemetry/power_bus</p>
+                    </div>
+                    <span class="status-led" id="bus-led"></span>
+                </div>
+                <div class="sensor-value" id="bus-val">--</div>
+            </div>
+
+            <div class="sensor-card">
+                <div class="sensor-header">
+                    <div>
+                        <strong>⚡ Consumo Energetico</strong>
+                        <p style="margin: 0; color: #666; font-size: 0.8rem;">mars/telemetry/power_consumption</p>
+                    </div>
+                    <span class="status-led" id="cons-led"></span>
+                </div>
+                <div class="sensor-value" id="cons-val">--</div>
+            </div>
+
+            <div class="sensor-card">
+                <div class="sensor-header">
+                    <div>
+                        <strong>🌡️ Loop Termico</strong>
+                        <p style="margin: 0; color: #666; font-size: 0.8rem;">mars/telemetry/thermal_loop</p>
+                    </div>
+                    <span class="status-led" id="thermal-led"></span>
+                </div>
+                <div class="sensor-value" id="thermal-val">--</div>
+            </div>
+
+            <div class="sensor-card">
+                <div class="sensor-header">
+                    <div>
+                        <strong>☢️ Radiazioni</strong>
+                        <p style="margin: 0; color: #666; font-size: 0.8rem;">mars/telemetry/radiation</p>
+                    </div>
+                    <span class="status-led" id="rad-led"></span>
+                </div>
+                <div class="sensor-value" id="rad-val" style="font-size: 1.2rem;">--</div>
+            </div>
+
+            <div class="sensor-card">
+                <div class="sensor-header">
+                    <div>
+                        <strong>💚 Supporto Vitale</strong>
+                        <p style="margin: 0; color: #666; font-size: 0.8rem;">mars/telemetry/life_support</p>
+                    </div>
+                    <span class="status-led" id="life-led"></span>
+                </div>
+                <div class="sensor-value" id="life-val" style="font-size: 1.2rem;">--</div>
+            </div>
+
+            <div class="sensor-card">
+                <div class="sensor-header">
+                    <div>
+                        <strong>🚪 Camera di Compensazione (Airlock)</strong>
+                        <p style="margin: 0; color: #666; font-size: 0.8rem;">mars/telemetry/airlock</p>
+                    </div>
+                    <span class="status-led" id="airlock-led"></span>
+                </div>
+                <div class="sensor-value" id="airlock-val">--</div>
+                <div style="font-size: 0.8rem; color: #666; font-weight: bold; margin-top: 5px;">
+                    Stato: <span id="airlock-status">--</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script src="script.js"></script>
 </body>
