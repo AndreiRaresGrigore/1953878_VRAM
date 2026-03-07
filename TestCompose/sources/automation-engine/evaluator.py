@@ -1,10 +1,18 @@
 """
 evaluator.py — evaluates incoming sensor events against persisted rules.
 
+Supports two event shapes published by the ingestion service:
+
+  Flat (original):
+    { "sensor_id": "...", "metric": "temperature_c", "value": 23.5, ... }
+
+  Nested (current normalizer):
+    { "sensor_id": "...", "measurements": {"metric": "temperature_c", "value": 23.5}, ... }
+
 An event matches a rule when:
   1. event["sensor_id"] == rule["sensor_id"]
-  2. rule["metric"] is empty OR event["metric"] == rule["metric"]
-  3. evaluate(event["value"], rule["operator"], rule["threshold"]) is True
+  2. rule["metric"] is empty OR resolved metric == rule["metric"]
+  3. evaluate(resolved value, rule["operator"], rule["threshold"]) is True
 """
 
 import operator as op_module
@@ -23,14 +31,20 @@ def _apply(value: float, operator: str, threshold: float) -> bool:
         raise ValueError(f"Unknown operator: {operator}")
     return fn(value, threshold)
 
+def _extract(event: dict) -> tuple[str, float | None]:
+    """Return (metric, value) from either flat or nested event shape."""
+    # Nested shape: measurements is a dict
+    m = event.get("measurements")
+    if isinstance(m, dict):
+        return m.get("metric", ""), m.get("value")
+    # Flat shape
+    return event.get("metric", ""), event.get("value")
+
 def evaluate_rules(event: dict, rules: list[dict]) -> list[dict]:
-    """
-    Return the list of rules whose conditions are satisfied by *event*.
-    """
+    """Return the list of rules whose conditions are satisfied by *event*."""
     triggered = []
     sensor_id = event.get("sensor_id", "")
-    metric    = event.get("metric", "")
-    value     = event.get("value")
+    metric, value = _extract(event)
 
     if value is None:
         return triggered
@@ -41,13 +55,10 @@ def evaluate_rules(event: dict, rules: list[dict]) -> list[dict]:
         return triggered
 
     for rule in rules:
-        # Sensor match
         if rule["sensor_id"] != sensor_id:
             continue
-        # Metric match (empty means "any metric for this sensor")
         if rule["metric"] and rule["metric"] != metric:
             continue
-        # Threshold evaluation
         try:
             if _apply(value, rule["operator"], float(rule["threshold"])):
                 triggered.append(rule)
