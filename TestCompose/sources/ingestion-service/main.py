@@ -1,74 +1,52 @@
 import requests
 import time
 import threading
-
-import pika
 import yaml
 import json
+import paho.mqtt.client as mqtt
 
 with open("config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
 BASE_URL      = config["simulator_url"]
-RABBITMQ_HOST = config["rabbitmq_host"]
-QUEUE_NAME    = config["queue_name"]
-POLL_INTERVAL = config["polling_interval"]
-RABBITMQ_USER = config["rabbitmq_user"]
-RABBITMQ_PASS = config["rabbitmq_pass"]
-RABBITMQ_EXCHANGE = config["queue_name"]
+MQTT_HOST     = config["rabbitmq_host"]
+MQTT_PORT     = config.get("mqtt_port", 1883)
+MQTT_USER     = config["rabbitmq_user"]
+MQTT_PASS     = config["rabbitmq_pass"]
 
-credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
+# ============================================================
+# CONNESSIONE MQTT
+# ============================================================
 
-def connect_rabbit():
+def connect_mqtt():
+    client = mqtt.Client()
+    client.username_pw_set(MQTT_USER, MQTT_PASS)
 
     while True:
         try:
-            credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASS)
-
-            connection = pika.BlockingConnection(
-                pika.ConnectionParameters(
-                    host=RABBITMQ_HOST,
-                    credentials=credentials
-                )
-            )
-
-            print("[RabbitMQ] Connesso")
-            return connection
-
-        except pika.exceptions.AMQPConnectionError:
-            print("[RabbitMQ] In attesa del broker...")
+            client.connect(MQTT_HOST, MQTT_PORT, 60)
+            print("[MQTT] Connesso al broker")
+            return client
+        except Exception:
+            print("[MQTT] Connessione fallita, retry tra 5s...")
             time.sleep(5)
 
-connection = connect_rabbit()
-channel = connection.channel()
+mqtt_client = connect_mqtt()
+mqtt_client.loop_start()  # thread di background per gestire ping/keepalive
+
+# ============================================================
+# PUBBLICAZIONE EVENTI
+# ============================================================
 
 def pubblica_evento(sensor_id, evento):
-    routing_key = f"sensor/{sensor_id}"
-
-    channel.basic_publish(
-        exchange=RABBITMQ_EXCHANGE,
-        routing_key=routing_key,
-        body=json.dumps(evento),
-        properties=pika.BasicProperties(
-            content_type="application/json",
-            delivery_mode=2
-        )
-    )
-
-# topic exchange (already declared in definitions.json but safe to declare)
-channel.exchange_declare(
-    exchange=RABBITMQ_EXCHANGE,
-    exchange_type="topic",
-    durable=True
-)
-
-# URL base del simulatore
+    topic = f"sensor/{sensor_id}"
+    payload = json.dumps(evento)
+    mqtt_client.publish(topic, payload, qos=1)  # QoS=1 assicura almeno 1 consegna
 
 # ============================================================
-# SENSORI REST — polling ogni 5 secondi
+# NORMALIZZAZIONE DATI
 # ============================================================
 
-# Lista di tutti i sensori REST con il loro schema
 SENSORI_REST = [
     {"id": "greenhouse_temperature", "schema": "rest.scalar.v1"},
     {"id": "entrance_humidity",      "schema": "rest.scalar.v1"},
@@ -81,12 +59,6 @@ SENSORI_REST = [
 ]
 
 def normalizza(sensor_id, schema, dati_grezzi):
-    """
-    Converte qualsiasi risposta del simulatore
-    nel formato interno unificato.
-    """
-
-    # Schema semplice: un solo valore
     if schema == "rest.scalar.v1":
         return {
             "sensor_id":  sensor_id,
@@ -97,47 +69,44 @@ def normalizza(sensor_id, schema, dati_grezzi):
             "status":     dati_grezzi["status"],
             "timestamp":  dati_grezzi["captured_at"],
         }
-
-    # Schema chimico: contiene un array di misurazioni
     elif schema == "rest.chemistry.v1":
         return {
-            "sensor_id":    sensor_id,
-            "type":         "rest",
-            "metric":       "chemistry",
+            "sensor_id": sensor_id,
+            "type": "rest",
+            "metric": "chemistry",
             "measurements": dati_grezzi["measurements"],
-            "status":       dati_grezzi["status"],
-            "timestamp":    dati_grezzi["captured_at"],
+            "status": dati_grezzi["status"],
+            "timestamp": dati_grezzi["captured_at"],
         }
-
-    # Schema livello acqua
     elif schema == "rest.level.v1":
         return {
-            "sensor_id":    sensor_id,
-            "type":         "rest",
-            "metric":       "level",
-            "value":        dati_grezzi["level_pct"],
-            "unit":         "%",
+            "sensor_id": sensor_id,
+            "type": "rest",
+            "metric": "level",
+            "value": dati_grezzi["level_pct"],
+            "unit": "%",
             "value_liters": dati_grezzi["level_liters"],
-            "status":       dati_grezzi["status"],
-            "timestamp":    dati_grezzi["captured_at"],
+            "status": dati_grezzi["status"],
+            "timestamp": dati_grezzi["captured_at"],
         }
-
-    # Schema particolato (PM2.5)
     elif schema == "rest.particulate.v1":
         return {
             "sensor_id": sensor_id,
-            "type":      "rest",
-            "metric":    "particulate",
-            "pm1":       dati_grezzi["pm1_ug_m3"],
-            "pm25":      dati_grezzi["pm25_ug_m3"],
-            "pm10":      dati_grezzi["pm10_ug_m3"],
-            "unit":      "ug/m3",
-            "status":    dati_grezzi["status"],
+            "type": "rest",
+            "metric": "particulate",
+            "pm1": dati_grezzi["pm1_ug_m3"],
+            "pm25": dati_grezzi["pm25_ug_m3"],
+            "pm10": dati_grezzi["pm10_ug_m3"],
+            "unit": "ug/m3",
+            "status": dati_grezzi["status"],
             "timestamp": dati_grezzi["captured_at"],
         }
 
+# ============================================================
+# POLLING REST
+# ============================================================
+
 def leggi_sensore(sensor_id, schema):
-    """Chiede il valore attuale di un sensore REST"""
     try:
         url = f"{BASE_URL}/api/sensors/{sensor_id}"
         response = requests.get(url, timeout=5)
@@ -149,7 +118,6 @@ def leggi_sensore(sensor_id, schema):
         print(f"[ERRORE] Sensore {sensor_id}: {e}")
 
 def polling_loop():
-    """Legge tutti i sensori REST ogni 5 secondi in loop"""
     print("[REST] Polling avviato...")
     while True:
         for sensore in SENSORI_REST:
@@ -157,7 +125,7 @@ def polling_loop():
         time.sleep(5)
 
 # ============================================================
-# TELEMETRIA — stream SSE, i dati arrivano da soli
+# TELEMETRIA SSE
 # ============================================================
 
 TOPIC_TELEMETRIA = [
@@ -171,8 +139,6 @@ TOPIC_TELEMETRIA = [
 ]
 
 def ascolta_topic(topic):
-    """Si connette a un topic SSE e rimane in ascolto"""
-    import json
     url = f"{BASE_URL}/api/telemetry/stream/{topic}"
     print(f"[SSE] Connesso a {topic}")
     try:
@@ -184,8 +150,8 @@ def ascolta_topic(topic):
                         dati_grezzi = json.loads(line[5:].strip())
                         evento = {
                             "sensor_id": topic,
-                            "type":      "telemetry",
-                            "data":      dati_grezzi,
+                            "type": "telemetry",
+                            "data": dati_grezzi,
                             "timestamp": dati_grezzi.get("event_time", ""),
                         }
                         print(f"[SSE] {evento}")
@@ -194,7 +160,6 @@ def ascolta_topic(topic):
         print(f"[ERRORE] Topic {topic}: {e}")
 
 def avvia_telemetria():
-    """Avvia un thread separato per ogni topic"""
     for topic in TOPIC_TELEMETRIA:
         t = threading.Thread(target=ascolta_topic, args=(topic,), daemon=True)
         t.start()
@@ -207,8 +172,5 @@ print("=" * 50)
 print("  Ingestion Service avviato!")
 print("=" * 50)
 
-# Avvia tutti gli stream di telemetria in background
 avvia_telemetria()
-
-# Avvia il polling REST (blocca il programma principale)
 polling_loop()

@@ -7,7 +7,7 @@
     },
     {
       "name": "ingestion_service",
-      "password": "mqt",
+      "password": "ingestion_pass",
       "tags": ""
     },
     {

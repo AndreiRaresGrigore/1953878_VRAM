@@ -18,11 +18,12 @@ services:
       - ./templates/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
       - ./templates/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
     ports:
-      - "5672:5672"
-      - "15672:15672"
-      - "1883:1883"
+      - "5672:5672"     # AMQP
+      - "15672:15672"   # Management UI
+      - "1883:1883"     # MQTT
     networks:
       - mars-net
+    command: sh -c "rabbitmq-plugins enable --offline rabbitmq_mqtt && rabbitmq-server"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
