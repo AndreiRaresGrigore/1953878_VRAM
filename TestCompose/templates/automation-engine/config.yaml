@@ -1,0 +1,5 @@
+simulator_url:   "http://simulator:8080"
+rabbitmq_host:   rabbitmq
+mqtt_port:       1883
+rabbitmq_user:   mars_admin
+rabbitmq_pass:   mars_admin
