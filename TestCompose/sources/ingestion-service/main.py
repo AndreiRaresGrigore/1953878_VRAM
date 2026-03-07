@@ -47,7 +47,13 @@ mqtt_client.loop_start()
 def pubblica_evento(sensor_id, evento):
     topic = f"sensor/{sensor_id}"
     mqtt_client.publish(topic, json.dumps(evento), qos=1)
-    print(f"[PUB] {evento['sensor_id']} | {evento['metric']} = {evento['value']} {evento['unit']}")
+    
+    # Estraiamo i valori in modo sicuro usando .get() per evitare KeyError
+    metric_name = evento.get("metric", evento.get("measurements", {}).get("metric", "N/A"))
+    val = evento.get("value", evento.get("measurements", {}).get("value", "N/A"))
+    unit = evento.get("unit", "")
+    
+    print(f"[PUB] {evento.get('sensor_id', 'unknown')} | {metric_name} = {val} {unit}")
 
 # ============================================================
 # SENSORI REST

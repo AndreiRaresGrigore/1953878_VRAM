@@ -14,13 +14,16 @@ regardless of the original source (REST or telemetry stream):
 {
     "sensor_id":  "string  — unique identifier of the sensor or topic",
     "source":     "string  — 'rest' or 'telemetry'",
-    "metric":     "string  — what is being measured (e.g. temperature_c)",
-    "value":      "number  — the measured value",
+    "mesurements":{
+
+    },
     "unit":       "string  — unit of measurement (e.g. C, %, kW)",
     "status":     "string  — 'ok' or 'warning'",
     "timestamp":  "string  — ISO 8601 datetime"
 }
 ```
+      "number  — the measured value"
+    "metric":     "string  — what is being measured (e.g. temperature_c)",
 
 ### Example events
 

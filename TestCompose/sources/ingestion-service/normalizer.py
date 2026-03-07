@@ -13,8 +13,10 @@ def normalizza_rest(sensor_id, schema, dati_grezzi):
         return {
             "sensor_id": sensor_id,
             "source":    "rest",
-            "metric":    dati_grezzi["metric"],
-            "value":     dati_grezzi["value"],
+            "measurements": {
+                "metric": dati_grezzi["metric"],
+                "value":  dati_grezzi["value"]
+            },
             "unit":      dati_grezzi["unit"],
             "status":    dati_grezzi["status"],
             "timestamp": dati_grezzi["captured_at"],
@@ -26,8 +28,10 @@ def normalizza_rest(sensor_id, schema, dati_grezzi):
             {
                 "sensor_id": sensor_id,
                 "source":    "rest",
-                "metric":    m["metric"],
-                "value":     m["value"],
+                "measurements": {
+                    "metric": m["metric"],
+                    "value":  m["value"]
+                },
                 "unit":      m["unit"],
                 "status":    dati_grezzi["status"],
                 "timestamp": dati_grezzi["captured_at"],
@@ -36,15 +40,33 @@ def normalizza_rest(sensor_id, schema, dati_grezzi):
         ]
 
     elif schema == "rest.level.v1":
-        return {
-            "sensor_id": sensor_id,
-            "source":    "rest",
-            "metric":    "level_pct",
-            "value":     dati_grezzi["level_pct"],
-            "unit":      "%",
-            "status":    dati_grezzi["status"],
-            "timestamp": dati_grezzi["captured_at"],
-        }
+        # Stampa il payload grezzo nei log per scoprire la chiave reale
+        print(f"[DEBUG water_tank] Payload ricevuto: {dati_grezzi}", flush=True)
+        
+        return [
+            {
+                "sensor_id": sensor_id,
+                "source":    "rest",
+                "measurements": {
+                    "metric": "fill_percentage",
+                    "value":  dati_grezzi.get("level_pct", dati_grezzi.get("fill_percentage", dati_grezzi.get("percentage", dati_grezzi.get("level", 0))))
+                },
+                "unit":      "%",
+                "status":    dati_grezzi.get("status", "ok"),
+                "timestamp": dati_grezzi.get("captured_at"),
+            },
+            {
+                "sensor_id": sensor_id,
+                "source":    "rest",
+                "measurements": {
+                    "metric": "level_liters",
+                    "value":  dati_grezzi.get("level_liters", dati_grezzi.get("liters", 0))
+                },
+                "unit":      "L",
+                "status":    dati_grezzi.get("status", "ok"),
+                "timestamp": dati_grezzi.get("captured_at"),
+            }
+        ]
 
     elif schema == "rest.particulate.v1":
         # un evento per ogni tipo di particolato
@@ -52,30 +74,36 @@ def normalizza_rest(sensor_id, schema, dati_grezzi):
             {
                 "sensor_id": sensor_id,
                 "source":    "rest",
-                "metric":    "pm1",
-                "value":     dati_grezzi["pm1_ug_m3"],
+                "measurements": {
+                    "metric": "pm1",
+                    "value":  dati_grezzi.get("pm1", dati_grezzi.get("pm1_ug_m3", 0))
+                },
                 "unit":      "ug/m3",
-                "status":    dati_grezzi["status"],
-                "timestamp": dati_grezzi["captured_at"],
+                "status":    dati_grezzi.get("status", "ok"),
+                "timestamp": dati_grezzi.get("captured_at"),
             },
             {
                 "sensor_id": sensor_id,
                 "source":    "rest",
-                "metric":    "pm25",
-                "value":     dati_grezzi["pm25_ug_m3"],
+                "measurements": {
+                    "metric": "pm25",
+                    "value":  dati_grezzi.get("pm25", dati_grezzi.get("pm25_ug_m3", 0))
+                },
                 "unit":      "ug/m3",
-                "status":    dati_grezzi["status"],
-                "timestamp": dati_grezzi["captured_at"],
+                "status":    dati_grezzi.get("status", "ok"),
+                "timestamp": dati_grezzi.get("captured_at"),
             },
             {
                 "sensor_id": sensor_id,
                 "source":    "rest",
-                "metric":    "pm10",
-                "value":     dati_grezzi["pm10_ug_m3"],
+                "measurements": {
+                    "metric": "pm10",
+                    "value":  dati_grezzi.get("pm10", dati_grezzi.get("pm10_ug_m3", 0))
+                },
                 "unit":      "ug/m3",
-                "status":    dati_grezzi["status"],
-                "timestamp": dati_grezzi["captured_at"],
-            },
+                "status":    dati_grezzi.get("status", "ok"),
+                "timestamp": dati_grezzi.get("captured_at"),
+            }
         ]
 
     else:
@@ -92,8 +120,10 @@ def normalizza_telemetria(topic, schema, dati_grezzi):
         return {
             "sensor_id": topic,
             "source":    "telemetry",
-            "metric":    "power_kw",
-            "value":     dati_grezzi["power_kw"],
+            "measurements": {
+                "metric": "power_kw",
+                "value":  dati_grezzi["power_kw"]
+            },
             "unit":      "kW",
             "status":    "ok",
             "timestamp": dati_grezzi["event_time"],
@@ -105,8 +135,10 @@ def normalizza_telemetria(topic, schema, dati_grezzi):
             {
                 "sensor_id": topic,
                 "source":    "telemetry",
-                "metric":    m["metric"],
-                "value":     m["value"],
+                "measurements": {
+                    "metric": m["metric"],
+                    "value":  m["value"]
+                },
                 "unit":      m["unit"],
                 "status":    dati_grezzi.get("status", "ok"),
                 "timestamp": dati_grezzi["event_time"],
@@ -118,8 +150,10 @@ def normalizza_telemetria(topic, schema, dati_grezzi):
         return {
             "sensor_id": topic,
             "source":    "telemetry",
-            "metric":    "temperature_c",
-            "value":     dati_grezzi["temperature_c"],
+            "measurements": {
+                "metric": "temperature_c",
+                "value":  dati_grezzi["temperature_c"]
+            },
             "unit":      "C",
             "status":    dati_grezzi.get("status", "ok"),
             "timestamp": dati_grezzi["event_time"],
@@ -129,8 +163,10 @@ def normalizza_telemetria(topic, schema, dati_grezzi):
         return {
             "sensor_id": topic,
             "source":    "telemetry",
-            "metric":    "cycles_per_hour",
-            "value":     dati_grezzi["cycles_per_hour"],
+            "measurements": {
+                "metric": "cycles_per_hour",
+                "value":  dati_grezzi["cycles_per_hour"]
+            },
             "unit":      "cycles/h",
             "status":    dati_grezzi["last_state"],
             "timestamp": dati_grezzi["event_time"],

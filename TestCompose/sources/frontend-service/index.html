@@ -88,12 +88,12 @@
         .data-panel {
             background-color: var(--bg-color);
             display: grid;
-            grid-template-columns: 1fr 1fr; /* Dividiamo i sensori su due colonne per fare spazio */
+            grid-template-columns: 1fr 1fr;
             gap: 1.5rem;
         }
 
         .data-panel-title {
-            grid-column: 1 / -1; /* Fa occupare al titolo tutta la larghezza */
+            grid-column: 1 / -1;
             margin-top: 0;
             margin-bottom: 0.5rem;
         }
@@ -104,9 +104,15 @@
             padding: 1.2rem;
             border-radius: 8px;
             display: flex;
-            flex-direction: column; /* Impilamento verticale per le card ristrette */
+            flex-direction: column;
             justify-content: space-between;
             gap: 1rem;
+        }
+
+        .sensor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .sensor-value {
@@ -124,6 +130,27 @@
             font-weight: bold;
             display: inline-block;
             margin-bottom: 1rem;
+        }
+
+        /* --- STILI PER IL LED DI STATO --- */
+        .status-led {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            display: inline-block;
+            border: 2px solid var(--border-color);
+            background-color: #e5e7eb; /* Grigio di default (in attesa di dati) */
+            transition: background-color 0.3s ease;
+        }
+
+        .led-green {
+            background-color: #34d399; /* Verde */
+            box-shadow: 0 0 8px #34d399;
+        }
+
+        .led-red {
+            background-color: #f87171; /* Rosso */
+            box-shadow: 0 0 8px #f87171;
         }
     </style>
 </head>
@@ -146,60 +173,123 @@
         </div>
 
         <div class="neo-box data-panel">
-            <h3 class="data-panel-title">Telemetria in Arrivo:</h3>
+            <h3 class="data-panel-title">Sensori REST in arrivo:</h3>
             
             <div class="sensor-card">
-                <div>
-                    <strong>🌡️ Temperatura Serra</strong>
-                    <p style="margin: 0; color: #666; font-size: 0.8rem;">greenhouse_temperature</p>
+                <div class="sensor-header">
+                    <div>
+                        <strong>🌡️ Temperatura Serra</strong>
+                        <p style="margin: 0; color: #666; font-size: 0.8rem;">greenhouse_temperature</p>
+                    </div>
+                    <span class="status-led" id="temp-led"></span>
                 </div>
                 <div class="sensor-value" id="temp-val">--</div>
             </div>
 
             <div class="sensor-card">
-                <div>
-                    <strong>💨 Pressione Corridoio</strong>
-                    <p style="margin: 0; color: #666; font-size: 0.8rem;">corridor_pressure</p>
-                </div>
-                <div class="sensor-value" id="press-val">--</div>
-            </div>
-            
-            <div class="sensor-card">
-                <div>
-                    <strong>💧 Livello Serbatoio</strong>
-                    <p style="margin: 0; color: #666; font-size: 0.8rem;">water_tank_level</p>
-                </div>
-                <div class="sensor-value" id="water-val">--</div>
-            </div>
-
-            <div class="sensor-card">
-                <div>
-                    <strong>☁️ Livello CO2</strong>
-                    <p style="margin: 0; color: #666; font-size: 0.8rem;">co2_hall</p>
-                </div>
-                <div class="sensor-value" id="co2-val">--</div>
-            </div>
-
-            <div class="sensor-card">
-                <div>
-                    <strong>💦 Umidità Ingresso</strong>
-                    <p style="margin: 0; color: #666; font-size: 0.8rem;">entrance_humidity</p>
+                <div class="sensor-header">
+                    <div>
+                        <strong>💦 Umidità Ingresso</strong>
+                        <p style="margin: 0; color: #666; font-size: 0.8rem;">entrance_humidity</p>
+                    </div>
+                    <span class="status-led" id="hum-led"></span>
                 </div>
                 <div class="sensor-value" id="hum-val">--</div>
             </div>
 
             <div class="sensor-card">
-                <div>
-                    <strong>🌫️ PM 2.5 Aria</strong>
-                    <p style="margin: 0; color: #666; font-size: 0.8rem;">air_quality_pm25</p>
+                <div class="sensor-header">
+                    <div>
+                        <strong>☁️ Livello CO2</strong>
+                        <p style="margin: 0; color: #666; font-size: 0.8rem;">co2_hall</p>
+                    </div>
+                    <span class="status-led" id="co2-led"></span>
                 </div>
-                <div class="sensor-value" id="pm25-val">--</div>
+                <div class="sensor-value" id="co2-val">--</div>
+            </div>
+
+            <div class="sensor-card">
+                <div class="sensor-header">
+                    <div>
+                        <strong>🧪 pH Idroponica</strong>
+                        <p style="margin: 0; color: #666; font-size: 0.8rem;">hydroponic_ph</p>
+                    </div>
+                    <span class="status-led" id="ph-led"></span>
+                </div>
+                <div class="sensor-value" id="ph-val">--</div>
+            </div>
+
+            <div class="sensor-card">
+                <div class="sensor-header">
+                    <div>
+                        <strong>💧 Livello Serbatoio</strong>
+                        <p style="margin: 0; color: #666; font-size: 0.8rem;">water_tank_level</p>
+                    </div>
+                    <span class="status-led" id="water-led"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 10px; text-align: center;">
+                    <div>
+                        <div style="font-size: 0.8rem; color: #666; font-weight: bold;">Capacità</div>
+                        <div class="sensor-value" id="water-perc-val" style="font-size: 1.1rem;">--</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.8rem; color: #666; font-weight: bold;">Volume</div>
+                        <div class="sensor-value" id="water-liters-val" style="font-size: 1.1rem;">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sensor-card">
+                <div class="sensor-header">
+                    <div>
+                        <strong>💨 Pressione Corridoio</strong>
+                        <p style="margin: 0; color: #666; font-size: 0.8rem;">corridor_pressure</p>
+                    </div>
+                    <span class="status-led" id="press-led"></span>
+                </div>
+                <div class="sensor-value" id="press-val">--</div>
+            </div>                     
+
+            <div class="sensor-card">
+                <div class="sensor-header">
+                    <div>
+                        <strong>🌫️ Qualità Aria (Particolato)</strong>
+                        <p style="margin: 0; color: #666; font-size: 0.8rem;">air_quality_pm25</p>
+                    </div>
+                    <span class="status-led" id="pm-led"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 10px; text-align: center;">
+                    <div>
+                        <div style="font-size: 0.8rem; color: #666; font-weight: bold;">PM 1.0</div>
+                        <div class="sensor-value" id="pm1-val" style="font-size: 1.1rem;">--</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.8rem; color: #666; font-weight: bold;">PM 2.5</div>
+                        <div class="sensor-value" id="pm25-val" style="font-size: 1.1rem;">--</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.8rem; color: #666; font-weight: bold;">PM 10</div>
+                        <div class="sensor-value" id="pm10-val" style="font-size: 1.1rem;">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sensor-card">
+                <div class="sensor-header">
+                    <div>
+                        <strong>☣️ Qualità Aria (VOC)</strong>
+                        <p style="margin: 0; color: #666; font-size: 0.8rem;">air_quality_voc</p>
+                    </div>
+                    <span class="status-led" id="voc-led"></span>
+                </div>
+                <div class="sensor-value" id="voc-val">--</div>
             </div>
         </div>
     </div>
+    
+    
 
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    
     <script src="script.js"></script>
 </body>
 </html>
