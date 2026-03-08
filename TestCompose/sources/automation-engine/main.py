@@ -52,15 +52,15 @@ def on_message(client, userdata, msg):
         with state_lock:
             # 1. Aggiorna la cache globale con l'ultimo valore arrivato
             sensor_state[sensor_id] = event
-            
+
             # 2. Crea un'istantanea sicura di tutto il sistema da inviare all'evaluator
             current_state = dict(sensor_state)
 
         rules = get_rules()
-        
+
         # 3. Passa TUTTO LO STATO al motore di valutazione invece del singolo evento
         triggered = evaluate_rules(current_state, rules)
-        
+
         for rule in triggered:
             fire_actuator(rule)
 
@@ -73,10 +73,10 @@ def on_message(client, userdata, msg):
 
 def fire_actuator(rule: dict):
     actuator = rule["actuator_name"]
-    
+
     # SE L'ATTUATORE E' IN MANUALE, IGNORA LA REGOLA!
     if actuator in manual_overrides:
-        return 
+        return
 
     state = rule["actuator_state"]
 
@@ -88,11 +88,11 @@ def fire_actuator(rule: dict):
     try:
         resp = requests.post(url, json={"state": state}, timeout=5)
         print(f"[ACTUATOR AUTO] {actuator} -> {state} (HTTP {resp.status_code})")
-        
+
         # Invia la notifica toast SOLO al primo innesco (cambio di stato effettivo)
         if resp.status_code in (200, 201):
             last_actuator_states[actuator] = state # Aggiorna la memoria
-            
+
             msg = json.dumps({
                 "type": "RULE_TRIGGER",
                 "actuator": actuator,

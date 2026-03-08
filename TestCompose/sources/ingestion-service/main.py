@@ -123,20 +123,20 @@ def pubblica_evento(device_id, evento):
     # 2. Pubblicazione su MQTT
     topic = f"sensor/{device_id}"
     mqtt_client.publish(topic, json.dumps(evento), qos=1)
-    
+
     # 3. Log migliorato per gestire l'array di misurazioni
     m_list = evento.get("measurements", [])
     # Estrae le misurazioni come stringa
     misurazioni = ", ".join([f"{m.get('metric')}={m.get('value')}{m.get('unit')}" for m in evento.get("measurements", [])])
-    
+
     # Cerca dinamicamente quale campo di "stato" è presente nel payload
     stato_operativo = (
-        evento.get("status") or 
-        evento.get("airlock_state") or 
-        evento.get("actuator_state") or 
+        evento.get("status") or
+        evento.get("airlock_state") or
+        evento.get("actuator_state") or
         "N/D" # N/D (Non Disponibile) se l'evento non prevede uno stato (es. power_bus)
     )
-    
+
     # Stampa un log pulito
     if misurazioni:
         print(f"[PUB] {evento.get('device_id')} | {misurazioni} | state: {stato_operativo}")

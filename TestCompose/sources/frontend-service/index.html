@@ -21,7 +21,7 @@
                 <button class="tab-btn btn-yellow" id="tab-rules" onclick="switchTab('rules')">⚙️ Automation Rules</button>
             </div>
         </div>
-        
+
         <div class="header-right">
             <a href="#" class="btn-purple" id="connection-status">Simulator Disconnected</a>
             <div class="actuators-bar">
@@ -177,11 +177,11 @@
     </div>
 
     <div id="view-energy" style="display: none; flex-direction: column; flex: 1; min-height: 0;">
-        <div class="neo-box" style="padding: 1rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; background-color: white;">
-            <h2 class="section-heading" style="margin: 0; background: var(--color-green);">⚡ Power Balance</h2>
+        <div class="neo-box" style="padding: 1rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+            <h2 class="section-heading" style="margin: 0;">⚡ Power Balance</h2>
             <div id="energy-status-badge" class="energy-waiting" style="padding: 0.4rem 1rem; font-weight: bold; border: var(--brutal-border); border-radius: 6px;">Waiting for data...</div>
         </div>
-        <div class="neo-box" style="flex: 1; padding: 1.5rem; position: relative; background: white; min-height: 0;">
+        <div class="neo-box" style="flex: 1; padding: 1.5rem; position: relative; min-height: 0;">
             <canvas id="energy-chart"></canvas>
         </div>
     </div>

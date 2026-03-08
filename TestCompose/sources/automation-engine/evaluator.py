@@ -21,7 +21,7 @@ def _apply(value: float, operator: str, threshold: float) -> bool:
 def evaluate_rules(sensor_state: dict, rules: list[dict]) -> list[dict]:
     """
     Valuta TUTTE le regole basandosi sulla cache globale di tutti i sensori.
-    
+
     Poiché `rules` è ordinato per position (priorità massima = 1), iteriamo dall'alto.
     La prima regola soddisfatta per un determinato attuatore se lo "aggiudica".
     Le regole successive per quello stesso attuatore vengono ignorate, garantendo la priority queue.
@@ -33,7 +33,7 @@ def evaluate_rules(sensor_state: dict, rules: list[dict]) -> list[dict]:
             continue
 
         actuator = rule["actuator_name"]
-        
+
         # 1. Se una regola con priorità più alta ha già reclamato questo attuatore,
         # saltiamo la valutazione delle regole meno importanti.
         if actuator in winner_per_actuator:
@@ -62,7 +62,7 @@ def evaluate_rules(sensor_state: dict, rules: list[dict]) -> list[dict]:
                 continue
             if metric and metric != p_metric:
                 continue
-            
+
             try:
                 p_value = float(p_value)
                 if _apply(p_value, rule["operator"], float(rule["threshold"])):

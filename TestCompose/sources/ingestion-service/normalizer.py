@@ -93,11 +93,11 @@ def normalizza_telemetria(topic, schema, dati_grezzi):
             "current_a": "A",
             "cumulative_kwh": "kWh"
         }
-        
+
         metadata = {}
         if "subsystem" in dati_grezzi:
             metadata["subsystem"] = dati_grezzi["subsystem"]
-            
+
         return {
             "device_id": topic,
             "device_type": "telemetry",
@@ -114,7 +114,7 @@ def normalizza_telemetria(topic, schema, dati_grezzi):
         if "source" in dati_grezzi:
             metadata["system"] = dati_grezzi["source"].get("system", "")
             metadata["segment"] = dati_grezzi["source"].get("segment", "")
-            
+
         return {
             "device_id": topic,
             "device_type": "telemetry",
@@ -133,14 +133,14 @@ def normalizza_telemetria(topic, schema, dati_grezzi):
 
     elif schema == "topic.thermal_loop.v1":
         measurements = []
-        
+
         if "temperature_c" in dati_grezzi:
             measurements.append({
                 "metric": "temperature_c",
                 "value": dati_grezzi["temperature_c"],
                 "unit": "C"
             })
-            
+
         if "flow_l_min" in dati_grezzi:
             measurements.append({
                 "metric": "flow_l_min",
@@ -165,7 +165,7 @@ def normalizza_telemetria(topic, schema, dati_grezzi):
         metadata = {}
         if "airlock_id" in dati_grezzi:
             metadata["airlock_id"] = dati_grezzi["airlock_id"]
-            
+
         return {
             "device_id": topic,
             "device_type": "telemetry",

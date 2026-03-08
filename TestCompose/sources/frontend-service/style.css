@@ -1,23 +1,43 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Oxanium:wght@400;700&display=swap');
 
 :root {
-    --bg-color: #f0f0f0;
-    --border-color: #1a1a1a;
-    --shadow-color: #1a1a1a;
-    --color-green: #A7F3D0; 
-    --color-purple: #D8B4FE; 
-    --color-blue: #93C5FD;
-    --color-yellow: #FDE047;
-    --brutal-border: 2px solid var(--border-color);
+    /* Mars Mission Telemetry Palette */
+    --bg-color: #0d0f14;           /* Deep space black */
+    --panel-bg: #13161e;           /* Dark panel background */
+    --border-color: #c1440e;       /* Martian rust / iron oxide */
+    --shadow-color: #8a2f08;       /* Deep rust shadow */
+    --text-primary: #e8d5b0;       /* Dusty parchment text */
+    --text-secondary: #9a8870;     /* Muted sand */
+    --text-muted: #5a5040;         /* Dim dust */
+
+    /* Functional accent colors */
+    --color-green: #1a3d2e;        /* Dark oxygen green (panel) */
+    --color-green-accent: #2dff7a; /* Phosphor green readout */
+    --color-purple: #1e1a30;       /* Dark electronics purple (panel) */
+    --color-purple-accent: #b87fff;/* Sensor value violet */
+    --color-blue: #0f2233;         /* Dark systems blue (panel) */
+    --color-blue-accent: #38b6ff;  /* Comms blue highlight */
+    --color-yellow: #3d2800;       /* Dark amber alert (panel) */
+    --color-yellow-accent: #ffb020;/* Alert amber */
+    --color-red: #3d0f0f;          /* Danger red (panel) */
+    --color-red-accent: #ff4444;   /* Critical red */
+
+    --brutal-border: 1px solid var(--border-color);
     --brutal-shadow: 2px 2px 0px 0px var(--shadow-color);
+    --glow-green: 0 0 8px rgba(45, 255, 122, 0.3);
+    --glow-amber: 0 0 8px rgba(255, 176, 32, 0.3);
+    --glow-red: 0 0 8px rgba(255, 68, 68, 0.4);
 }
 
 * { box-sizing: border-box; }
 
 body {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Oxanium', 'Share Tech Mono', monospace;
     background-color: var(--bg-color);
-    color: var(--border-color);
+    background-image: 
+        radial-gradient(ellipse at 20% 50%, rgba(193, 68, 14, 0.04) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(45, 255, 122, 0.02) 0%, transparent 50%);
+    color: var(--text-primary);
     margin: 0;
     padding: 0.4rem 1rem; 
     height: 100vh;
@@ -28,9 +48,9 @@ body {
 
 .neo-box {
     border: var(--brutal-border);
-    box-shadow: var(--brutal-shadow);
-    border-radius: 6px; 
-    background-color: white;
+    box-shadow: var(--brutal-shadow), inset 0 0 30px rgba(0,0,0,0.3);
+    border-radius: 4px; 
+    background-color: var(--panel-bg);
 }
 
 /* ==========================================
@@ -38,23 +58,25 @@ body {
    ========================================== */
 .top-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
 .header-left { display: flex; gap: 1.5rem; align-items: stretch; }
-.logo-box { padding: 0.5rem 1.2rem; background-color: var(--color-green); display: flex; flex-direction: column; justify-content: center; }
-.logo-box .logo { font-size: 1.3rem; font-weight: 700; }
-.logo-box .subtitle { margin: 0; font-size: 0.75rem; color: #333; }
+.logo-box { padding: 0.5rem 1.2rem; background-color: var(--color-green); border-color: var(--color-green-accent) !important; display: flex; flex-direction: column; justify-content: center; }
+.logo-box .logo { font-size: 1.3rem; font-weight: 700; color: var(--color-green-accent); text-shadow: var(--glow-green); letter-spacing: 0.05em; }
+.logo-box .subtitle { margin: 0; font-size: 0.7rem; color: var(--text-secondary); letter-spacing: 0.08em; text-transform: uppercase; }
 
 .tabs-container { display: flex; gap: 0.6rem; align-items: center; }
-.tab-btn { border: var(--brutal-border); border-radius: 6px; padding: 0.6rem 1rem; font-weight: bold; cursor: pointer; font-size: 0.85rem; opacity: 0.6; }
+.tab-btn { border: var(--brutal-border); border-radius: 4px; padding: 0.6rem 1rem; font-weight: bold; cursor: pointer; font-size: 0.8rem; opacity: 0.5; font-family: 'Oxanium', monospace; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-primary); }
 .tab-btn.active { opacity: 1; box-shadow: var(--brutal-shadow); transform: translate(-1px, -1px); }
-.btn-blue { background-color: var(--color-blue); }
-.btn-yellow { background-color: var(--color-yellow); }
+.btn-blue { background-color: var(--color-blue); border-color: var(--color-blue-accent) !important; }
+.btn-blue.active { box-shadow: 2px 2px 0px 0px var(--shadow-color), var(--glow-amber); color: var(--color-blue-accent); }
+.btn-yellow { background-color: var(--color-yellow); border-color: var(--color-yellow-accent) !important; }
+.btn-yellow.active { color: var(--color-yellow-accent); }
 
 .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; }
-.btn-purple { padding: 0.3rem 0.8rem; font-weight: bold; font-size: 0.85rem; text-decoration: none; color: var(--border-color); background-color: var(--color-purple); border-radius: 6px; border: var(--brutal-border); box-shadow: var(--brutal-shadow); }
+.btn-purple { padding: 0.3rem 0.8rem; font-weight: bold; font-size: 0.8rem; text-decoration: none; color: var(--color-purple-accent); background-color: var(--color-purple); border-radius: 4px; border: 1px solid var(--color-purple-accent); box-shadow: var(--brutal-shadow); letter-spacing: 0.06em; text-transform: uppercase; font-family: 'Oxanium', monospace; }
 
 /* Mini Attuatori */
 .actuators-bar { display: flex; gap: 0.4rem; }
-.act-mini { background: white; padding: 0.25rem 0.4rem; min-width: 110px; display: flex; flex-direction: column; gap: 0.1rem; }
-.act-mini-top { display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; }
+.act-mini { background: var(--panel-bg); padding: 0.25rem 0.4rem; min-width: 110px; display: flex; flex-direction: column; gap: 0.1rem; border-color: var(--border-color); }
+.act-mini-top { display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: var(--text-secondary); }
 .act-mini .sensor-value { font-size: 0.85rem; text-align: center; margin: 1px 0; }
 .act-mini .last-updated { padding-top: 1px; margin-top: 0; font-size: 0.55rem; }
 
@@ -63,8 +85,8 @@ body {
    ========================================== */
 #view-dashboard { display: flex; flex-direction: row; gap: 0.8rem; flex: 1; min-height: 0; }
 
-.section-heading { margin: 0 0 0.3rem 0; font-size: 1rem; font-weight: 700; padding: 0.4rem 0.8rem; background: var(--color-purple); border: var(--brutal-border); border-radius: 6px; box-shadow: var(--brutal-shadow); }
-.section-heading.telemetry { background: var(--color-blue); }
+.section-heading { margin: 0 0 0.3rem 0; font-size: 0.9rem; font-weight: 700; padding: 0.4rem 0.8rem; background: var(--color-purple); border: 1px solid var(--color-purple-accent); border-radius: 4px; box-shadow: var(--brutal-shadow); color: var(--color-purple-accent); letter-spacing: 0.1em; text-transform: uppercase; }
+.section-heading.telemetry { background: var(--color-blue); border-color: var(--color-blue-accent); color: var(--color-blue-accent); }
 
 /* PROPORZIONI SCHERMO (3 a sinistra, 5 a destra) */
 .pane-rest { flex: 3; display: flex; flex-direction: column; }
@@ -102,11 +124,12 @@ body {
 /* ==========================================
    WIDGET SENSORI
    ========================================== */
-.sensor-card { background-color: white; padding: 0.55rem 0.8rem; display: flex; flex-direction: column; justify-content: flex-start; gap: 0.3rem; }
-.sensor-header { display: flex; justify-content: space-between; align-items: flex-start; font-size: 0.85rem; }
-.sensor-value { font-size: 1.4rem; font-weight: 700; color: var(--color-purple); margin-top: 2px;}
-.multi-value-label { font-size: 0.7rem; color: #666; font-weight: bold; }
-.last-updated { font-size: 0.6rem; color: #888; margin-top: auto; padding-top: 3px; border-top: 1px dashed #ccc; text-align: right; }
+.sensor-card { background-color: var(--panel-bg); padding: 0.55rem 0.8rem; display: flex; flex-direction: column; justify-content: flex-start; gap: 0.3rem; }
+.sensor-header { display: flex; justify-content: space-between; align-items: flex-start; font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+.sensor-header strong { color: var(--text-primary); }
+.sensor-value { font-size: 1.4rem; font-weight: 700; color: var(--color-green-accent); margin-top: 2px; text-shadow: var(--glow-green); font-family: 'Share Tech Mono', monospace; }
+.multi-value-label { font-size: 0.65rem; color: var(--text-muted); font-weight: bold; letter-spacing: 0.08em; text-transform: uppercase; }
+.last-updated { font-size: 0.6rem; color: var(--text-muted); margin-top: auto; padding-top: 3px; border-top: 1px dashed #2a2520; text-align: right; }
 
 /* Centratura verticale del contenuto nei widget */
 .single-val-center { display: flex; justify-content: center; align-items: center; text-align: center; width: 100%; flex: 1; }
@@ -115,37 +138,37 @@ body {
 .sensor-card > .grid-4 { flex: 1; align-content: center; }
 
 .status-container { display: flex; align-items: center; gap: 6px; }
-.status-led { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--border-color); background-color: #e5e7eb; }
-.led-green { background-color: #34d399; }
-.led-red { background-color: #f87171; }
-.status-badge { font-size: 0.6rem; font-weight: bold; padding: 2px 5px; border: 2px solid var(--border-color); border-radius: 4px; display: none; }
+.status-led { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--border-color); background-color: #2a2520; }
+.led-green { background-color: var(--color-green-accent); box-shadow: var(--glow-green); }
+.led-red { background-color: var(--color-red-accent); box-shadow: var(--glow-red); }
+.status-badge { font-size: 0.6rem; font-weight: bold; padding: 2px 5px; border: 1px solid var(--border-color); border-radius: 3px; display: none; font-family: 'Share Tech Mono', monospace; }
 
 /* ==========================================
    RULES MANAGEMENT
    ========================================== */
 #view-rules { display: none; flex-direction: column; flex: 1; min-height: 0; }
-.rule-form-container { background-color: var(--color-green); padding: 0.5rem 0.8rem; margin-bottom: 0.5rem; }
+.rule-form-container { background-color: var(--color-green); padding: 0.5rem 0.8rem; margin-bottom: 0.5rem; border-color: var(--color-green-accent) !important; }
 .rule-form { display: flex; gap: 0.6rem; align-items: flex-end; }
 .form-group { display: flex; flex-direction: column; gap: 0.2rem; flex: 1; }
-.form-group label { font-weight: bold; font-size: 0.7rem; }
-.form-control { padding: 0.3rem 0.5rem; border: var(--brutal-border); border-radius: 6px; box-shadow: var(--brutal-shadow); font-family: inherit; font-size: 0.8rem; font-weight: bold; background-color: white; }
-.form-control:focus { outline: none; box-shadow: 3px 3px 0px 0px var(--shadow-color); }
-.btn-form { height: 34px; padding: 0 1rem; background-color: var(--color-yellow); border: var(--brutal-border); box-shadow: var(--brutal-shadow); font-weight: bold; font-family: inherit; font-size: 0.85rem; border-radius: 6px; cursor: pointer; transition: all 0.1s ease; }
-.btn-form:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0px 0px var(--shadow-color); }
+.form-group label { font-weight: bold; font-size: 0.65rem; color: var(--color-green-accent); letter-spacing: 0.08em; text-transform: uppercase; }
+.form-control { padding: 0.3rem 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; box-shadow: var(--brutal-shadow); font-family: 'Oxanium', monospace; font-size: 0.8rem; font-weight: bold; background-color: #0d1a12; color: var(--text-primary); }
+.form-control:focus { outline: none; box-shadow: 3px 3px 0px 0px var(--shadow-color), var(--glow-green); border-color: var(--color-green-accent); }
+.btn-form { height: 34px; padding: 0 1rem; background-color: var(--color-yellow); border: 1px solid var(--color-yellow-accent); box-shadow: var(--brutal-shadow); font-weight: bold; font-family: 'Oxanium', monospace; font-size: 0.8rem; border-radius: 4px; cursor: pointer; transition: all 0.1s ease; color: var(--color-yellow-accent); letter-spacing: 0.05em; }
+.btn-form:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0px 0px var(--shadow-color), var(--glow-amber); }
 .btn-form:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0px 0px var(--shadow-color); }
 
 /* Stile controlli inline edit (modalità modifica regola) */
-.edit-select, .edit-input { padding: 0.15rem 0.4rem; border: var(--brutal-border); border-radius: 6px; box-shadow: var(--brutal-shadow); font-family: inherit; font-size: 0.85rem; font-weight: bold; background-color: var(--color-yellow); }
-.edit-input { background-color: white; width: 70px; }
+.edit-select, .edit-input { padding: 0.15rem 0.4rem; border: 1px solid var(--color-yellow-accent); border-radius: 4px; box-shadow: var(--brutal-shadow); font-family: 'Oxanium', monospace; font-size: 0.85rem; font-weight: bold; background-color: var(--color-yellow); color: var(--color-yellow-accent); }
+.edit-input { background-color: #1a1200; color: var(--color-yellow-accent); width: 70px; }
 .edit-select:focus, .edit-input:focus { outline: none; }
 
-.rules-list-wrapper { flex: 1; overflow-y: auto; background: white; border: var(--brutal-border); border-radius: 6px; padding: 0.6rem; box-shadow: var(--brutal-shadow); }
+.rules-list-wrapper { flex: 1; overflow-y: auto; background: var(--panel-bg); border: var(--brutal-border); border-radius: 4px; padding: 0.6rem; box-shadow: var(--brutal-shadow); }
 .rules-grid { display: flex; flex-direction: column; gap: 0.4rem; }
-.rule-card { border: var(--brutal-border); border-radius: 6px; padding: 0.5rem 0.8rem; display: flex; justify-content: space-between; align-items: center; background: #fafafa; }
-.rule-logic { font-size: 0.9rem; font-weight: bold; }
-.rule-logic span.highlight { background-color: var(--color-yellow); padding: 0.1rem 0.3rem; border: 2px solid var(--border-color); border-radius: 4px; margin: 0 0.1rem; }
-.btn-red { background-color: #f87171; color: white; padding: 0.2rem 0.5rem; font-size: 0.75rem; border: var(--brutal-border); border-radius: 4px; cursor: pointer; font-weight: bold; }
-.btn-blue-outline { background-color: white; color: var(--color-blue); border: 2px solid var(--color-blue); padding: 0.2rem 0.5rem; font-size: 0.75rem; font-weight: bold; border-radius: 4px; cursor: pointer; margin-right: 0.3rem; }
+.rule-card { border: 1px solid #2a2520; border-radius: 4px; padding: 0.5rem 0.8rem; display: flex; justify-content: space-between; align-items: center; background: #0f1118; }
+.rule-logic { font-size: 0.85rem; font-weight: bold; color: var(--text-primary); font-family: 'Share Tech Mono', monospace; }
+.rule-logic span.highlight { background-color: var(--color-yellow); color: var(--color-yellow-accent); padding: 0.1rem 0.3rem; border: 1px solid var(--color-yellow-accent); border-radius: 3px; margin: 0 0.1rem; }
+.btn-red { background-color: var(--color-red); color: var(--color-red-accent); border: 1px solid var(--color-red-accent); padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 3px; cursor: pointer; font-weight: bold; font-family: 'Oxanium', monospace; }
+.btn-blue-outline { background-color: transparent; color: var(--color-blue-accent); border: 1px solid var(--color-blue-accent); padding: 0.2rem 0.5rem; font-size: 0.75rem; font-weight: bold; border-radius: 3px; cursor: pointer; margin-right: 0.3rem; font-family: 'Oxanium', monospace; }
 .rule-actions { display: flex; gap: 0.3rem; }
 
 /* ==========================================
@@ -181,7 +204,7 @@ body {
 #water-tank-card {
     position: relative;
     overflow: hidden;
-    background-color: white; 
+    background-color: var(--panel-bg); 
 }
 
 .water-wave {
@@ -190,11 +213,13 @@ body {
     left: 0;
     width: 100%;
     height: 0%;
-    background-color: var(--color-blue);
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" opacity="0.15"><filter id="a"><feTurbulence type="fractalNoise" baseFrequency="0.1" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23a)"/></svg>');
+    background-color: #0a2a3d;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" opacity="0.25"><filter id="a"><feTurbulence type="fractalNoise" baseFrequency="0.1" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23a)"/></svg>');
     background-size: cover;
     transition: height 1s ease-in-out;
     z-index: 0;
+    border-top: 1px solid var(--color-blue-accent);
+    box-shadow: 0 -4px 12px rgba(56, 182, 255, 0.2);
 }
 
 /* Micro-oscillazioni interne (Corpo dell'acqua) */
@@ -309,17 +334,19 @@ body {
 
 .toast {
     background-color: var(--color-yellow);
-    border: var(--brutal-border);
-    box-shadow: var(--brutal-shadow);
+    border: 1px solid var(--color-yellow-accent);
+    box-shadow: var(--brutal-shadow), var(--glow-amber);
     padding: 1rem 1.5rem;
-    border-radius: 6px;
+    border-radius: 4px;
     font-weight: bold;
-    font-size: 0.9rem;
-    color: var(--border-color);
+    font-size: 0.85rem;
+    color: var(--color-yellow-accent);
     animation: slideIn 0.3s ease-out forwards;
     display: flex;
     align-items: center;
     gap: 10px;
+    font-family: 'Oxanium', monospace;
+    letter-spacing: 0.05em;
 }
 
 @keyframes slideIn {
@@ -350,12 +377,12 @@ body {
 }
 
 /* Colore specifico per il nuovo Tab Energy */
-.btn-green { background-color: var(--color-green); }
+.btn-green { background-color: var(--color-green); border-color: var(--color-green-accent) !important; color: var(--color-green-accent); }
 
 /* Badges di stato per la finestra Energy Balance */
-.energy-surplus { background-color: var(--color-green); color: var(--border-color); box-shadow: var(--brutal-shadow); }
-.energy-deficit { background-color: #f87171; color: white; box-shadow: var(--brutal-shadow); }
-.energy-waiting { background-color: #e5e7eb; color: #666; border-color: #999; }
+.energy-surplus { background-color: var(--color-green); color: var(--color-green-accent); box-shadow: var(--brutal-shadow), var(--glow-green); border-color: var(--color-green-accent) !important; }
+.energy-deficit { background-color: var(--color-red); color: var(--color-red-accent); box-shadow: var(--brutal-shadow), var(--glow-red); }
+.energy-waiting { background-color: #1a1a1a; color: var(--text-muted); border-color: #2a2520; }
 
 /* Overlay oscuro dietro al popup grafico */
 .modal-overlay {
@@ -363,46 +390,49 @@ body {
     position: fixed; 
     top: 0; left: 0; 
     width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.6); 
+    background: rgba(0, 0, 0, 0.85); 
     z-index: 10000; 
     justify-content: center; 
     align-items: center;
+    backdrop-filter: blur(2px);
 }
 
 /* Finestra di popup */
 .modal-content {
-    background: white; 
+    background: var(--panel-bg); 
     width: 90%; 
     max-width: 800px; 
     padding: 1.5rem;
     display: flex; 
     flex-direction: column; 
     gap: 1rem;
+    border-color: var(--border-color);
 }
 
 .modal-header { 
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
-    border-bottom: 2px solid var(--border-color); 
+    border-bottom: 1px solid var(--border-color); 
     padding-bottom: 0.5rem; 
 }
-.modal-header h2 { margin: 0; font-size: 1.3rem; }
+.modal-header h2 { margin: 0; font-size: 1.2rem; color: var(--color-purple-accent); letter-spacing: 0.08em; text-transform: uppercase; }
 
 /* Tasto X per chiudere il modal */
 .close-btn { 
-    background: var(--color-yellow); 
-    border: 2px solid var(--border-color); 
-    border-radius: 4px; 
-    font-size: 1.2rem; 
+    background: var(--color-red); 
+    border: 1px solid var(--color-red-accent); 
+    border-radius: 3px; 
+    font-size: 1.1rem; 
     cursor: pointer; 
     padding: 0.1rem 0.5rem; 
     font-weight: bold; 
-    box-shadow: 2px 2px 0 0 var(--border-color); 
+    box-shadow: 2px 2px 0 0 var(--shadow-color); 
+    color: var(--color-red-accent);
 }
 .close-btn:active { 
     transform: translate(1px, 1px); 
-    box-shadow: 1px 1px 0 0 var(--border-color); 
+    box-shadow: 1px 1px 0 0 var(--shadow-color); 
 }
 
 .modal-body { 
@@ -420,17 +450,17 @@ body {
    STATO REGOLA SOSPESA
    ========================================== */
 .rule-card.suspended {
-    opacity: 0.55;
-    background-color: #f9fafb;
+    opacity: 0.45;
+    background-color: #0a0c10;
     border-style: dashed;
-    filter: grayscale(80%);
+    filter: grayscale(70%);
 }
 
 .btn-toggle {
-    background-color: white;
+    background-color: var(--panel-bg);
     border: var(--brutal-border);
     box-shadow: 2px 2px 0px 0px var(--shadow-color);
-    border-radius: 4px;
+    border-radius: 3px;
     cursor: pointer;
     padding: 0.3rem 0.6rem;
     font-size: 0.9rem;
@@ -446,8 +476,8 @@ body {
     box-shadow: 1px 1px 0px 0px var(--shadow-color);
 }
 
-.btn-toggle.pause { color: #ea580c; /* Arancione per pausa */ }
-.btn-toggle.play { color: #16a34a; /* Verde per play */ }
+.btn-toggle.pause { color: var(--color-yellow-accent); }
+.btn-toggle.play { color: var(--color-green-accent); }
 
 /* ==========================================
    CONTROLLI MANUALI ATTUATORI
@@ -475,18 +505,18 @@ body {
     box-shadow: 0px 0px 0px 0px var(--border-color);
 }
 
-.btn-mode.auto { background-color: var(--color-blue); color: var(--border-color); }
-.btn-mode.manual { background-color: var(--color-yellow); color: var(--border-color); }
+.btn-mode.auto { background-color: var(--color-blue); color: var(--color-blue-accent); border-color: var(--color-blue-accent) !important; }
+.btn-mode.manual { background-color: var(--color-yellow); color: var(--color-yellow-accent); border-color: var(--color-yellow-accent) !important; }
 
-.btn-state.on { background-color: var(--color-green); color: var(--border-color); }
-.btn-state.off { background-color: #f87171; color: white; }
+.btn-state.on { background-color: var(--color-green); color: var(--color-green-accent); border-color: var(--color-green-accent) !important; }
+.btn-state.off { background-color: var(--color-red); color: var(--color-red-accent); border-color: var(--color-red-accent) !important; }
 
 /* In modalità AUTO, il tasto ON/OFF è disabilitato e grigio */
 .btn-state:disabled {
-    opacity: 0.4;
+    opacity: 0.3;
     cursor: not-allowed;
-    background-color: #e5e7eb;
-    color: #666;
+    background-color: #1a1a1a;
+    color: #3a3a3a;
     box-shadow: none;
     border-style: dashed;
 }

@@ -32,7 +32,7 @@ def init_db():
             con.execute("ALTER TABLE rules ADD COLUMN position INTEGER NOT NULL DEFAULT 0")
         except sqlite3.OperationalError:
             pass
-            
+
         try:
             con.execute("ALTER TABLE rules ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1")
         except sqlite3.OperationalError:
@@ -55,8 +55,8 @@ def _row_to_dict(row: tuple) -> dict:
 def get_rules() -> list[dict]:
     with _conn() as con:
         cur = con.execute("""
-            SELECT id, position, sensor_id, metric, operator, threshold, 
-                   actuator_name, actuator_state, description, is_active 
+            SELECT id, position, sensor_id, metric, operator, threshold,
+                   actuator_name, actuator_state, description, is_active
             FROM rules ORDER BY position ASC
         """)
         return [_row_to_dict(row) for row in cur.fetchall()]
@@ -64,8 +64,8 @@ def get_rules() -> list[dict]:
 def get_rule_by_id(rule_id: int) -> dict | None:
     with _conn() as con:
         cur = con.execute("""
-            SELECT id, position, sensor_id, metric, operator, threshold, 
-                   actuator_name, actuator_state, description, is_active 
+            SELECT id, position, sensor_id, metric, operator, threshold,
+                   actuator_name, actuator_state, description, is_active
             FROM rules WHERE id = ?
         """, (rule_id,))
         row = cur.fetchone()
@@ -105,7 +105,7 @@ def toggle_rule_active(rule_id: int) -> dict | None:
         cur = con.execute("SELECT is_active FROM rules WHERE id = ?", (rule_id,))
         row = cur.fetchone()
         if not row: return None
-        
+
         new_state = 0 if row[0] == 1 else 1
         con.execute("UPDATE rules SET is_active = ? WHERE id = ?", (new_state, rule_id))
         con.commit()
@@ -123,7 +123,7 @@ def move_rule(rule_id: int, direction: str) -> tuple[bool, str]:
     if direction == "up":
         if idx == 0: return False, "Rule is already at the top"
         neighbor_id = ids_in_order[idx - 1]
-    else: 
+    else:
         if idx == len(ids_in_order) - 1: return False, "Rule is already at the bottom"
         neighbor_id = ids_in_order[idx + 1]
     pos_a, pos_b = pos_map[rule_id], pos_map[neighbor_id]

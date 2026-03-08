@@ -36,10 +36,10 @@ VALID_STATES    = {"ON", "OFF"}
 def create_app(sensor_state: dict, state_lock: threading.Lock, manual_overrides: set = None, simulator_url: str = "http://localhost:8080", last_actuator_states: dict = None):
     app = Flask(__name__)
     CORS(app)
-    
+
     if manual_overrides is None:
         manual_overrides = set()
-    
+
     if last_actuator_states is None:
         last_actuator_states = {}
 
@@ -167,10 +167,10 @@ def create_app(sensor_state: dict, state_lock: threading.Lock, manual_overrides:
     def override_actuator(name):
         if name not in VALID_ACTUATORS:
             abort(400, description="Invalid actuator")
-        
+
         body = request.json or {}
         mode = body.get("mode", "auto")
-        
+
         if mode == "manual":
             manual_overrides.add(name) # Blocca l'Automation Engine per questo attuatore
             state = body.get("state")
@@ -182,9 +182,9 @@ def create_app(sensor_state: dict, state_lock: threading.Lock, manual_overrides:
         else:
             manual_overrides.discard(name)  # Sblocca l'attuatore, torna in Auto
             last_actuator_states.pop(name, None)  # Dimentica lo stato: forza rivalutazione al prossimo messaggio MQTT
-            
+
         return jsonify({"status": "success", "actuator": name, "mode": mode})
-    
+
     @app.route('/api/rules/<int:rule_id>/toggle', methods=['POST'])
     def api_toggle_rule(rule_id):
         updated = toggle_rule_active(rule_id)
