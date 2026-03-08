@@ -4,9 +4,9 @@ import threading
 import yaml
 import json
 import paho.mqtt.client as mqtt
-import json
 from jsonschema import validate, ValidationError
 from normalizer import normalizza_rest, normalizza_telemetria, to_list
+from db_writer import init_db, salva_evento
 
 # ============================================================
 # CONFIGURAZIONE
@@ -15,11 +15,11 @@ from normalizer import normalizza_rest, normalizza_telemetria, to_list
 with open("config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
-BASE_URL  = config["simulator_url"]
-MQTT_HOST = config["rabbitmq_host"]
-MQTT_PORT = config.get("mqtt_port", 1883)
-MQTT_USER = config["rabbitmq_user"]
-MQTT_PASS = config["rabbitmq_pass"]
+BASE_URL      = config["simulator_url"]
+MQTT_HOST     = config["rabbitmq_host"]
+MQTT_PORT     = config.get("mqtt_port", 1883)
+MQTT_USER     = config["rabbitmq_user"]
+MQTT_PASS     = config["rabbitmq_pass"]
 POLL_INTERVAL = config.get("polling_interval", 5)
 
 # ============================================================
@@ -42,14 +42,14 @@ mqtt_client = connect_mqtt()
 mqtt_client.loop_start()
 
 # ============================================================
-# PUBBLICAZIONE
+# SCHEMA DI VALIDAZIONE
 # ============================================================
 
 EVENT_SCHEMA = {
     "type": "object",
     "required": ["sensor_id", "captured_at", "measurements", "sensor_type", "status"],
     "properties": {
-        "sensor_id": {"type": "string"},
+        "sensor_id":   {"type": "string"},
         "sensor_type": {"type": "string", "enum": ["rest", "telemetry"]},
         "captured_at": {"type": "string", "format": "date-time"},
         "measurements": {
@@ -59,42 +59,52 @@ EVENT_SCHEMA = {
                 "required": ["parameter", "value", "unit"],
                 "properties": {
                     "parameter": {"type": "string"},
-                    "value": {"type": "number"},
-                    "unit": {"type": "string"}
-                }
-            }
+                    "value":     {"type": "number"},
+                    "unit":      {"type": "string"},
+                },
+            },
         },
-        "status": {"type": "string", "enum": ["ok", "warning", "IDLE", "PRESSURIZING", "DEPRESSURIZING", "--"]}
-    }
+        "status": {
+            "type": "string",
+            "enum": ["ok", "warning", "IDLE", "PRESSURIZING", "DEPRESSURIZING", "--"],
+        },
+    },
 }
 
+
 def valida_evento(evento):
-    """
-    Verifica se l'evento rispetta lo schema JSON definito.
-    Ritorna (True, None) se valido, (False, errore) se non valido.
-    """
     try:
         validate(instance=evento, schema=EVENT_SCHEMA)
         return True, None
     except ValidationError as e:
         return False, e.message
 
+# ============================================================
+# PUBBLICAZIONE + PERSISTENZA
+# ============================================================
+
 def pubblica_evento(sensor_id, evento):
-    # 1. Validazione preventiva (rispetto allo schema fornito)
+    # 1. Validazione
     is_valido, errore = valida_evento(evento)
     if not is_valido:
         print(f"[ERRORE VALIDAZIONE] Evento scartato per {sensor_id}: {errore}")
         return
 
-    # 2. Pubblicazione su MQTT
+    # 2. Pubblicazione MQTT
     topic = f"sensor/{sensor_id}"
     mqtt_client.publish(topic, json.dumps(evento), qos=1)
-    
-    # 3. Log migliorato per gestire l'array di misurazioni
+
+    # 3. Persistenza PostgreSQL
+    try:
+        salva_evento(evento)
+    except Exception as e:
+        print(f"[ERRORE DB] {sensor_id}: {e}")
+
+    # 4. Log
     m_list = evento.get("measurements", [])
-    # Creiamo una stringa leggibile con tutte le misurazioni presenti nell'evento
-    log_measurements = ", ".join([f"{m['parameter']}={m['value']}{m['unit']}" for m in m_list])
-    
+    log_measurements = ", ".join(
+        [f"{m['parameter']}={m['value']}{m['unit']}" for m in m_list]
+    )
     print(f"[PUB] {evento.get('sensor_id')} | {log_measurements} | status: {evento.get('status')}")
 
 # ============================================================
@@ -162,7 +172,7 @@ def avvia_telemetria():
         thread = threading.Thread(
             target=ascolta_topic,
             args=(t["id"], t["schema"]),
-            daemon=True
+            daemon=True,
         )
         thread.start()
 
@@ -174,5 +184,6 @@ print("=" * 50)
 print("  Ingestion Service avviato!")
 print("=" * 50)
 
+init_db()
 avvia_telemetria()
 polling_loop()
