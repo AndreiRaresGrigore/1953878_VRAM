@@ -44,7 +44,7 @@ def evaluate_rules(sensor_state: dict, rules: list[dict]) -> list[dict]:
         # 2. Estrazione dei valori aggiornati dalla cache
         m = event.get("measurements")
         if isinstance(m, list):
-            pairs = [(entry.get("parameter", ""), entry.get("value")) for entry in m]
+            pairs = [(entry.get("metric", ""), entry.get("value")) for entry in m]
         elif isinstance(m, dict):
             pairs = [(m.get("metric", m.get("parameter", "")), m.get("value"))]
         else:

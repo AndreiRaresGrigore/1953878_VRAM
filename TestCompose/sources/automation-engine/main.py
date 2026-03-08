@@ -45,7 +45,7 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     try:
         event = json.loads(msg.payload.decode("utf-8"))
-        sensor_id = event.get("sensor_id")
+        sensor_id = event.get("device_id")  # matches normalizer output
         if not sensor_id:
             return
 
