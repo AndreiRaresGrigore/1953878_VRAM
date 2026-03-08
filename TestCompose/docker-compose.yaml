@@ -19,7 +19,7 @@ services:
       - ./templates/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
       - ./templates/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
     ports:
-      - "5672:5672"
+      - "5672:5672"     # AMQP
       - "15672:15672"   # Management UI
       - "1883:1883"     # MQTT
       - "15675:15675"   # MQTT WebSockets
@@ -32,25 +32,25 @@ services:
       timeout: 5s
       retries: 5
 
-  # postgres:
-  #   restart: unless-stopped
-  #   image: postgres:16-alpine
-  #   environment:
-  #     - POSTGRES_USER=mars
-  #     - POSTGRES_PASSWORD=mars_password
-  #     - POSTGRES_DB=mars_db
-  #   volumes:
-  #     - postgres-data:/var/lib/postgresql/data
-  #     - ./templates/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
-  #   ports:
-  #     - "5432:5432"
-  #   networks:
-  #     - mars-net
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U mars -d mars_db"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
+  postgres:
+    restart: unless-stopped
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=mars
+      - POSTGRES_PASSWORD=mars_password
+      - POSTGRES_DB=mars_db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./templates/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql  # opzionale
+    ports:
+      - "5432:5432"
+    networks:
+      - mars-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mars -d mars_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   ingestion-service:
     restart: unless-stopped
@@ -63,16 +63,16 @@ services:
         condition: service_healthy
       simulator:
         condition: service_healthy
-      # postgres:
-      #   condition: service_healthy
+      postgres:
+        condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
-      # - DB_HOST=postgres
-      # - DB_PORT=5432
-      # - DB_NAME=mars_db
-      # - DB_USER=mars
-      # - DB_PASSWORD=mars_password
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=mars_db
+      - DB_USER=mars
+      - DB_PASSWORD=mars_password
     networks:
       - mars-net
 
@@ -83,23 +83,23 @@ services:
       - ./templates/automation-engine/config.yaml:/app/config.yaml
       - automation-data:/data
     ports:
-      - "8081:8081"
+      - "8081:8081"     # REST API (rules + state)
     depends_on:
       rabbitmq:
         condition: service_healthy
       simulator:
         condition: service_healthy
-      # postgres:
-      #   condition: service_healthy
+      postgres:
+        condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - DB_PATH=/data/rules.db
-      # - DB_HOST=postgres
-      # - DB_PORT=5432
-      # - DB_NAME=mars_db
-      # - DB_USER=mars
-      # - DB_PASSWORD=mars_password
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=mars_db
+      - DB_USER=mars
+      - DB_PASSWORD=mars_password
     networks:
       - mars-net
 
@@ -114,21 +114,22 @@ services:
     depends_on:
       - automation-engine
 
-  # pgadmin:
-  #   restart: unless-stopped
-  #   image: dpage/pgadmin4
-  #   environment:
-  #     - PGADMIN_DEFAULT_EMAIL=admin@admin.com
-  #     - PGADMIN_DEFAULT_PASSWORD=admin
-  #   ports:
-  #     - "5050:80"
-  #   volumes:
-  #     - pgadmin-data:/var/lib/pgadmin
-  #   networks:
-  #     - mars-net
-  #   depends_on:
-  #     postgres:
-  #       condition: service_healthy
+  pgadmin:
+    restart: unless-stopped
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - mars-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 
 networks:
   mars-net:
@@ -137,4 +138,4 @@ networks:
 volumes:
   automation-data:
   postgres-data:
-  # pgadmin-data:
+  pgadmin-data:
