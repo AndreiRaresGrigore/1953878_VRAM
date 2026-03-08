@@ -72,18 +72,18 @@ body {
 
 /* GRIGLIA ASSOLUTA A 3 COLONNE (REST) */
 .pane-rest .pane-content {
-    flex: 1; display: grid; 
+    flex: 1; display: grid; min-height: 0;
     grid-template-columns: repeat(3, 1fr);
     grid-auto-flow: dense;
-    gap: 0.4rem; align-content: start; padding: 0.1rem;
+    gap: 0.4rem; align-content: stretch; padding: 0.1rem;
 }
 
 /* GRIGLIA ASSOLUTA A 5 COLONNE (TELEMETRY) */
 .pane-telemetry .pane-content {
-    flex: 1; display: grid; 
+    flex: 1; display: grid; min-height: 0;
     grid-template-columns: repeat(5, 1fr);
     grid-auto-flow: dense;
-    gap: 0.4rem; align-content: start; padding: 0.1rem;
+    gap: 0.4rem; align-content: stretch; padding: 0.1rem;
 }
 
 /* Modificatori di Spazio Widget */
@@ -102,11 +102,17 @@ body {
 /* ==========================================
    WIDGET SENSORI
    ========================================== */
-.sensor-card { background-color: white; padding: 0.4rem 0.6rem; display: flex; flex-direction: column; justify-content: space-between; gap: 0.3rem; }
-.sensor-header { display: flex; justify-content: space-between; align-items: flex-start; font-size: 0.8rem; }
-.sensor-value { font-size: 1.05rem; font-weight: 700; color: var(--color-purple); margin-top: 2px;}
-.multi-value-label { font-size: 0.65rem; color: #666; font-weight: bold; }
+.sensor-card { background-color: white; padding: 0.55rem 0.8rem; display: flex; flex-direction: column; justify-content: flex-start; gap: 0.3rem; }
+.sensor-header { display: flex; justify-content: space-between; align-items: flex-start; font-size: 0.85rem; }
+.sensor-value { font-size: 1.4rem; font-weight: 700; color: var(--color-purple); margin-top: 2px;}
+.multi-value-label { font-size: 0.7rem; color: #666; font-weight: bold; }
 .last-updated { font-size: 0.6rem; color: #888; margin-top: auto; padding-top: 3px; border-top: 1px dashed #ccc; text-align: right; }
+
+/* Centratura verticale del contenuto nei widget */
+.single-val-center { display: flex; justify-content: center; align-items: center; text-align: center; width: 100%; flex: 1; }
+.sensor-card > .grid-2,
+.sensor-card > .grid-3,
+.sensor-card > .grid-4 { flex: 1; align-content: center; }
 
 .status-container { display: flex; align-items: center; gap: 6px; }
 .status-led { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--border-color); background-color: #e5e7eb; }
@@ -122,8 +128,16 @@ body {
 .rule-form { display: flex; gap: 0.6rem; align-items: flex-end; }
 .form-group { display: flex; flex-direction: column; gap: 0.2rem; flex: 1; }
 .form-group label { font-weight: bold; font-size: 0.7rem; }
-.form-control { padding: 0.3rem; border: 2px solid var(--border-color); border-radius: 4px; font-family: inherit; font-size: 0.8rem; font-weight: bold; }
-.btn-form { height: 32px; padding: 0 1rem; background-color: white; border: var(--brutal-border); font-weight: bold; border-radius: 4px; cursor: pointer; }
+.form-control { padding: 0.3rem 0.5rem; border: var(--brutal-border); border-radius: 6px; box-shadow: var(--brutal-shadow); font-family: inherit; font-size: 0.8rem; font-weight: bold; background-color: white; }
+.form-control:focus { outline: none; box-shadow: 3px 3px 0px 0px var(--shadow-color); }
+.btn-form { height: 34px; padding: 0 1rem; background-color: var(--color-yellow); border: var(--brutal-border); box-shadow: var(--brutal-shadow); font-weight: bold; font-family: inherit; font-size: 0.85rem; border-radius: 6px; cursor: pointer; transition: all 0.1s ease; }
+.btn-form:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0px 0px var(--shadow-color); }
+.btn-form:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0px 0px var(--shadow-color); }
+
+/* Stile controlli inline edit (modalità modifica regola) */
+.edit-select, .edit-input { padding: 0.15rem 0.4rem; border: var(--brutal-border); border-radius: 6px; box-shadow: var(--brutal-shadow); font-family: inherit; font-size: 0.85rem; font-weight: bold; background-color: var(--color-yellow); }
+.edit-input { background-color: white; width: 70px; }
+.edit-select:focus, .edit-input:focus { outline: none; }
 
 .rules-list-wrapper { flex: 1; overflow-y: auto; background: white; border: var(--brutal-border); border-radius: 6px; padding: 0.6rem; box-shadow: var(--brutal-shadow); }
 .rules-grid { display: flex; flex-direction: column; gap: 0.4rem; }

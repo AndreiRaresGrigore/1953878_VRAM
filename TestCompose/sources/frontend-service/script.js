@@ -67,7 +67,7 @@ for (const [sid, metrics] of Object.entries(sensorMetricsMap)) {
 // ==========================================
 function formatTimeAgo(timestamp) {
     const seconds = Math.floor((new Date() - timestamp) / 1000);
-    if (seconds < 10) return "just now";
+    if (seconds === 0) return "just now";
     if (seconds < 60) return `${seconds} sec ago`;
     const minutes = Math.floor(seconds / 60);
     if (minutes === 1) return `1 min ago`;
@@ -482,7 +482,7 @@ client.on('message', (topic, message) => {
     } catch (e) { console.error("Error parsing MQTT message:", e); }
 });
 
-setInterval(() => { for (const timeId of Object.values(timeElementMap)) updateTimeDisplay(timeId); }, 10000);
+setInterval(() => { for (const timeId of Object.values(timeElementMap)) updateTimeDisplay(timeId); }, 1000);
 client.on('error', () => { statusBtn.innerText = "Connection Error"; statusBtn.style.backgroundColor = "lightcoral"; });
 client.on('close', () => { statusBtn.innerText = "Disconnected"; statusBtn.style.backgroundColor = "var(--bg-color)"; });
 
@@ -649,7 +649,12 @@ document.getElementById('add-rule-form').addEventListener('submit', async (e) =>
 
     try {
         const response = await fetch(ENGINE_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newRule) });
-        if (response.ok) { document.getElementById('rule-threshold').value = ''; fetchRules(); }
+        if (response.ok) {
+            document.getElementById('rule-sensor').value = '';
+            document.getElementById('rule-metric').innerHTML = '<option value="" disabled selected>Select Sensor first</option>';
+            document.getElementById('rule-threshold').value = '';
+            fetchRules();
+        }
     } catch (error) { console.error(error); }
 });
 
@@ -723,6 +728,35 @@ function _pushEnergyPoint() {
     const badge = document.getElementById('energy-status-badge');
     const balance = latestSolarPower - latestConsumptionPower;
     badge.classList.remove('energy-surplus', 'energy-deficit', 'energy-waiting');
-    if (balance >= 0) { badge.classList.add('energy-surplus'); badge.innerText = `✅ SURPLUS  +${balance.toFixed(2)} kW`; } 
+    if (balance >= 0) { badge.classList.add('energy-surplus'); badge.innerText = `✅ SURPLUS  +${balance.toFixed(2)} kW`; }
     else { badge.classList.add('energy-deficit'); badge.innerText = `⚠️ DEFICIT  ${balance.toFixed(2)} kW`; }
 }
+
+// ==========================================
+// 7. MISSION STATUS CARD
+// ==========================================
+const MISSION_START = new Date('2026-01-01T00:00:00Z');
+const MARS_SOL_MS = 88775244; // 1 sol marziano = 24h 39m 35.244s
+
+function updateMissionStatus() {
+    const now = new Date();
+
+    const clockEl = document.getElementById('sys-clock');
+    if (clockEl) clockEl.innerText = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    const solEl = document.getElementById('sys-sol');
+    if (solEl) {
+        const elapsed = now - MISSION_START;
+        solEl.innerText = `Sol ${Math.max(0, Math.floor(elapsed / MARS_SOL_MS))}`;
+    }
+
+    const streamsEl = document.getElementById('sys-streams');
+    if (streamsEl) {
+        const active = document.querySelectorAll('.sensor-card .status-led.led-green').length;
+        const total = document.querySelectorAll('.sensor-card .status-led').length;
+        streamsEl.innerText = `${active}/${total}`;
+    }
+}
+
+setInterval(updateMissionStatus, 1000);
+updateMissionStatus();
