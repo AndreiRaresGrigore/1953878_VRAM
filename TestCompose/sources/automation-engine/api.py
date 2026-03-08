@@ -33,12 +33,15 @@ VALID_ACTUATORS = {"cooling_fan", "entrance_humidifier", "hall_ventilation", "ha
 VALID_STATES    = {"ON", "OFF"}
 
 
-def create_app(sensor_state: dict, state_lock: threading.Lock, manual_overrides: set = None, simulator_url: str = "http://localhost:8080"):
+def create_app(sensor_state: dict, state_lock: threading.Lock, manual_overrides: set = None, simulator_url: str = "http://localhost:8080", last_actuator_states: dict = None):
     app = Flask(__name__)
     CORS(app)
     
     if manual_overrides is None:
         manual_overrides = set()
+    
+    if last_actuator_states is None:
+        last_actuator_states = {}
 
     # ------------------------------------------------------------------
     # Health
@@ -177,7 +180,8 @@ def create_app(sensor_state: dict, state_lock: threading.Lock, manual_overrides:
                 except:
                     pass
         else:
-            manual_overrides.discard(name) # Sblocca l'attuatore, torna in Auto
+            manual_overrides.discard(name)  # Sblocca l'attuatore, torna in Auto
+            last_actuator_states.pop(name, None)  # Dimentica lo stato: forza rivalutazione al prossimo messaggio MQTT
             
         return jsonify({"status": "success", "actuator": name, "mode": mode})
     

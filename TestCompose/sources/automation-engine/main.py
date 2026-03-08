@@ -155,5 +155,5 @@ init_db()
 mqtt_client = connect_mqtt()
 mqtt_client.loop_start()
 
-app = create_app(sensor_state, state_lock, manual_overrides, SIMULATOR_URL)
+app = create_app(sensor_state, state_lock, manual_overrides, SIMULATOR_URL, last_actuator_states)
 app.run(host="0.0.0.0", port=8081)
