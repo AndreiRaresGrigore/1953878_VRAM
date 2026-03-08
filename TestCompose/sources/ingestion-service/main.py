@@ -4,9 +4,9 @@ import threading
 import yaml
 import json
 import paho.mqtt.client as mqtt
+import json
 from jsonschema import validate, ValidationError
 from normalizer import normalizza_rest, normalizza_telemetria, to_list
-from db_writer import init_db, salva_evento
 
 # ============================================================
 # CONFIGURAZIONE
@@ -15,11 +15,11 @@ from db_writer import init_db, salva_evento
 with open("config.yaml", "r") as f:
     config = yaml.safe_load(f)
 
-BASE_URL      = config["simulator_url"]
-MQTT_HOST     = config["rabbitmq_host"]
-MQTT_PORT     = config.get("mqtt_port", 1883)
-MQTT_USER     = config["rabbitmq_user"]
-MQTT_PASS     = config["rabbitmq_pass"]
+BASE_URL  = config["simulator_url"]
+MQTT_HOST = config["rabbitmq_host"]
+MQTT_PORT = config.get("mqtt_port", 1883)
+MQTT_USER = config["rabbitmq_user"]
+MQTT_PASS = config["rabbitmq_pass"]
 POLL_INTERVAL = config.get("polling_interval", 5)
 
 # ============================================================
@@ -42,70 +42,106 @@ mqtt_client = connect_mqtt()
 mqtt_client.loop_start()
 
 # ============================================================
-# SCHEMA DI VALIDAZIONE
+# PUBBLICAZIONE
 # ============================================================
 
 EVENT_SCHEMA = {
-    "type": "object",
-    "required": ["sensor_id", "captured_at", "measurements", "sensor_type", "status"],
-    "properties": {
-        "sensor_id":   {"type": "string"},
-        "sensor_type": {"type": "string", "enum": ["rest", "telemetry"]},
-        "captured_at": {"type": "string", "format": "date-time"},
-        "measurements": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "required": ["parameter", "value", "unit"],
-                "properties": {
-                    "parameter": {"type": "string"},
-                    "value":     {"type": "number"},
-                    "unit":      {"type": "string"},
-                },
-            },
-        },
-        "status": {
-            "type": "string",
-            "enum": ["ok", "warning", "IDLE", "PRESSURIZING", "DEPRESSURIZING", "--"],
-        },
+  "type": "object",
+  "required": ["device_id", "device_type", "timestamp"],
+  "properties": {
+    "device_id": {"type": "string"},
+    "device_type": {"type": "string", "enum": ["sensor", "telemetry", "actuator"]},
+    "timestamp": { "type": "string", "format": "date-time"},
+    "status": {"type": "string", "enum": ["ok", "warning"]},
+    "actuator_state": {"type": "string","enum": ["ON", "OFF"]},
+    "airlock_state": {"type": "string","enum": ["IDLE", "PRESSURIZING", "DEPRESSURIZING"]},
+    "metadata": {
+      "type": "object",
+      "additionalProperties": {"type": "string"},
+      "description": "Contiene campi extra come subsystem, loop, system, segment"
     },
+    "measurements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["metric", "value", "unit"],
+        "properties": {
+          "metric": {"type": "string"},
+          "value": {"type": "number"},
+          "unit": {"type": "string"}
+        }
+      }
+    },
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "device_type": {"const": "sensor"}
+        }
+      },
+      "then": {"required": ["measurements", "status"]}
+    },
+    {
+      "if": {
+        "properties": {
+          "device_type": {"const": "telemetry"},
+          "device_id": {"pattern": "^mars/telemetry/airlock$"}
+        }
+      },
+      "then": {"required": ["airlock_state"]}
+    },
+    {
+      "if": {
+        "properties": {
+          "device_type": {"const": "actuator"}
+        }
+      },
+      "then": {"required": ["actuator_state"]}
+    }
+  ]
 }
 
-
 def valida_evento(evento):
+    """
+    Verifica se l'evento rispetta lo schema JSON definito.
+    Ritorna (True, None) se valido, (False, errore) se non valido.
+    """
     try:
         validate(instance=evento, schema=EVENT_SCHEMA)
         return True, None
     except ValidationError as e:
         return False, e.message
 
-# ============================================================
-# PUBBLICAZIONE + PERSISTENZA
-# ============================================================
-
-def pubblica_evento(sensor_id, evento):
-    # 1. Validazione
+def pubblica_evento(device_id, evento):
+    # 1. Validazione preventiva (rispetto allo schema fornito)
     is_valido, errore = valida_evento(evento)
     if not is_valido:
-        print(f"[ERRORE VALIDAZIONE] Evento scartato per {sensor_id}: {errore}")
+        print(f"[ERRORE VALIDAZIONE] Evento scartato per {device_id}: {errore}")
         return
 
-    # 2. Pubblicazione MQTT
-    topic = f"sensor/{sensor_id}"
+    # 2. Pubblicazione su MQTT
+    topic = f"sensor/{device_id}"
     mqtt_client.publish(topic, json.dumps(evento), qos=1)
-
-    # 3. Persistenza PostgreSQL
-    try:
-        salva_evento(evento)
-    except Exception as e:
-        print(f"[ERRORE DB] {sensor_id}: {e}")
-
-    # 4. Log
+    
+    # 3. Log migliorato per gestire l'array di misurazioni
     m_list = evento.get("measurements", [])
-    log_measurements = ", ".join(
-        [f"{m['parameter']}={m['value']}{m['unit']}" for m in m_list]
+    # Estrae le misurazioni come stringa
+    misurazioni = ", ".join([f"{m.get('metric')}={m.get('value')}{m.get('unit')}" for m in evento.get("measurements", [])])
+    
+    # Cerca dinamicamente quale campo di "stato" è presente nel payload
+    stato_operativo = (
+        evento.get("status") or 
+        evento.get("airlock_state") or 
+        evento.get("actuator_state") or 
+        "N/D" # N/D (Non Disponibile) se l'evento non prevede uno stato (es. power_bus)
     )
-    print(f"[PUB] {evento.get('sensor_id')} | {log_measurements} | status: {evento.get('status')}")
+    
+    # Stampa un log pulito
+    if misurazioni:
+        print(f"[PUB] {evento.get('device_id')} | {misurazioni} | state: {stato_operativo}")
+    else:
+        print(f"[PUB] {evento.get('device_id')} | state: {stato_operativo}")
 
 # ============================================================
 # SENSORI REST
@@ -122,14 +158,14 @@ SENSORI_REST = [
     {"id": "air_quality_pm25",       "schema": "rest.particulate.v1"},
 ]
 
-def leggi_sensore(sensor_id, schema):
+def leggi_sensore(device_id, schema):
     try:
-        url = f"{BASE_URL}/api/sensors/{sensor_id}"
+        url = f"{BASE_URL}/api/sensors/{device_id}"
         dati_grezzi = requests.get(url, timeout=5).json()
-        for evento in to_list(normalizza_rest(sensor_id, schema, dati_grezzi)):
-            pubblica_evento(sensor_id, evento)
+        for evento in to_list(normalizza_rest(device_id, schema, dati_grezzi)):
+            pubblica_evento(device_id, evento)
     except Exception as e:
-        print(f"[ERRORE REST] {sensor_id}: {e}")
+        print(f"[ERRORE REST] {device_id}: {e}")
 
 def polling_loop():
     print("[REST] Polling avviato...")
@@ -172,7 +208,7 @@ def avvia_telemetria():
         thread = threading.Thread(
             target=ascolta_topic,
             args=(t["id"], t["schema"]),
-            daemon=True,
+            daemon=True
         )
         thread.start()
 
@@ -184,6 +220,5 @@ print("=" * 50)
 print("  Ingestion Service avviato!")
 print("=" * 50)
 
-init_db()
 avvia_telemetria()
 polling_loop()

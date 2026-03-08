@@ -145,18 +145,18 @@ client.on('message', (topic, message) => {
             return;
         }
 
-        // Timer update
-        const timeId = timeElementMap[payload.sensor_id];
+        // Timer update - Ora usa il nuovo standard device_id
+        const timeId = timeElementMap[payload.device_id];
         if (timeId) {
-            lastUpdatedTimes[timeId] = payload.captured_at ? new Date(payload.captured_at) : new Date();
+            lastUpdatedTimes[timeId] = payload.timestamp ? new Date(payload.timestamp) : new Date();
             updateTimeDisplay(timeId); 
         }
 
-        // Helpers per estrarre valori
-        const getMeasure = (pName) => payload.measurements ? payload.measurements.find(m => m.parameter === pName) : null;
+        // Helpers per estrarre valori - Ora usa 'metric' al posto di 'parameter'
+        const getMeasure = (pName) => payload.measurements ? payload.measurements.find(m => m.metric === pName) : null;
 
-        // Smistamento Switch con iniezione esclusiva di Valore + Unità (Zero etichette testuali)
-        switch(payload.sensor_id) {
+        // Smistamento Switch - Ora usa device_id
+        switch(payload.device_id) {
             
             // -- REST SENSORS --
             case "greenhouse_temperature": {
@@ -174,12 +174,9 @@ client.on('message', (topic, message) => {
                 if (perc) {
                     document.getElementById('water-perc-val').innerText = `${perc.value} ${perc.unit}`;
                     
-                    // --- NUOVO: Aggiorna il livello dell'onda! ---
                     const waveBg = document.getElementById('water-level-bg');
                     if (waveBg) {
-                        // Assicuriamoci che il valore resti tra 0 e 100
                         let heightVal = Math.max(0, Math.min(100, parseFloat(perc.value)));
-                        // Aggiungiamo un +5% visivo altrimenti al 10% l'onda è troppo bassa
                         waveBg.style.height = `${heightVal}%`;
                     }
                 }
@@ -261,7 +258,8 @@ client.on('message', (topic, message) => {
             case "mars/telemetry/airlock": {
                 const m = getMeasure("cycles_per_hour");
                 if (m) document.getElementById('airlock-val').innerText = `${m.value} ${m.unit}`;
-                updateStatusDisplay('airlock-led', 'airlock-badge', payload.status); break;
+                // Fallback a payload.airlock_state come da nuovo schema
+                updateStatusDisplay('airlock-led', 'airlock-badge', payload.status || payload.airlock_state); break;
             }
         }
         
@@ -282,7 +280,6 @@ client.on('close', () => { statusBtn.innerText = "Disconnected"; statusBtn.style
 // 5. GESTIONE REGOLE AUTOMAZIONE (TABS E API)
 // ==========================================
 function switchTab(tabName) {
-    // IMPORTANTE: Ora utilizziamo 'flex' invece di 'block' per mantenere la struttura intatta
     document.getElementById('view-dashboard').style.display = tabName === 'dashboard' ? 'flex' : 'none';
     document.getElementById('view-rules').style.display = tabName === 'rules' ? 'flex' : 'none';
     
@@ -292,7 +289,6 @@ function switchTab(tabName) {
     if (tabName === 'rules') fetchRules();
 }
 
-// Inizializzazione corretta all'avvio
 document.getElementById('view-dashboard').style.display = 'flex';
 document.getElementById('view-rules').style.display = 'none';
 
@@ -313,7 +309,6 @@ function updateMetricOptions() {
     }
 }
 
-// Memorizza temporaneamente le regole caricate per la modalità edit
 let currentRules = [];
 
 async function fetchRules() {
@@ -323,9 +318,6 @@ async function fetchRules() {
         if (!response.ok) throw new Error("Errore nel caricamento delle regole");
         
         currentRules = await response.json();
-        
-        // RIMOSSO IL VECCHIO ORDINAMENTO currentRules.sort(...)
-        // Ora l'array arriva dal backend già ordinato per Priority (position ASC)
         
         listContainer.innerHTML = ''; 
         
@@ -340,11 +332,9 @@ async function fetchRules() {
             ruleElement.id = `rule-card-${rule.id}`;
             const metricDisplay = rule.metric ? `.<span class="highlight">${rule.metric}</span>` : '';
             
-            // Verifica se è il primo o l'ultimo elemento per disabilitare i tasti
             const isFirst = index === 0;
             const isLast = index === currentRules.length - 1;
             
-            // Modalità visualizzazione standard con Indicatore di Priorità e Frecce
             ruleElement.innerHTML = `
                 <div style="margin-right: 1rem; text-align: center; min-width: 45px;">
                     <div style="font-size: 0.65rem; color: #666; font-weight: bold;">Priority</div>
@@ -370,7 +360,6 @@ async function fetchRules() {
     }
 }
 
-// NUOVA FUNZIONE: Contatta la POST /api/rules/<id>/move
 async function moveRule(ruleId, direction) {
     try {
         const response = await fetch(`${ENGINE_API_URL}/${ruleId}/move`, {
@@ -380,7 +369,6 @@ async function moveRule(ruleId, direction) {
         });
         
         if (response.ok) {
-            // L'API risponde con le regole aggiornate, ricarichiamo la UI
             fetchRules();
         } else {
             const err = await response.json();
@@ -392,7 +380,6 @@ async function moveRule(ruleId, direction) {
     }
 }
 
-// Invia le modifiche all'API tramite PUT
 async function saveRuleChanges(ruleId) {
     const updatedRule = {
         operator: document.getElementById(`edit-op-${ruleId}`).value,
@@ -408,7 +395,7 @@ async function saveRuleChanges(ruleId) {
         });
 
         if (response.ok) {
-            fetchRules(); // Ricarica la lista per mostrare la regola aggiornata
+            fetchRules(); 
         } else {
             alert('Error updating rule.');
         }
@@ -422,7 +409,7 @@ async function saveRuleChanges(ruleId) {
 // CREAZIONE / SOVRASCRITTURA NUOVA REGOLA
 // ==========================================
 document.getElementById('add-rule-form').addEventListener('submit', async (e) => {
-    e.preventDefault(); // Evita il ricaricamento della pagina
+    e.preventDefault(); 
 
     const newRule = {
         sensor_id: document.getElementById('rule-sensor').value,
@@ -434,7 +421,6 @@ document.getElementById('add-rule-form').addEventListener('submit', async (e) =>
         description: 'Created from Frontend'
     };
 
-    // 1. Controllo Collisioni (Match esatto di tutto tranne la soglia)
     const conflictingRule = currentRules.find(r => 
         r.sensor_id === newRule.sensor_id &&
         r.metric === newRule.metric &&
@@ -443,24 +429,22 @@ document.getElementById('add-rule-form').addEventListener('submit', async (e) =>
         r.actuator_state === newRule.actuator_state
     );
 
-    // 2. Se troviamo un conflitto, avviamo il flow di sovrascrittura
     if (conflictingRule) {
         const confirmOverwrite = confirm(
             `⚠️ Attenzione: Esiste già una regola identica nel database (Soglia attuale: ${conflictingRule.threshold}).\n\nVuoi sovrascriverla inserendo la nuova regola con soglia ${newRule.threshold}?`
         );
 
         if (!confirmOverwrite) {
-            return; // Se l'utente clicca 'Annulla', blocchiamo il processo
+            return; 
         }
 
-        // 3. Se l'utente accetta, eliminiamo la regola esistente tramite DELETE
         try {
             const deleteResponse = await fetch(`${ENGINE_API_URL}/${conflictingRule.id}`, { 
                 method: 'DELETE' 
             });
             if (!deleteResponse.ok) {
                 alert("Errore di comunicazione: Impossibile eliminare la vecchia regola.");
-                return; // Interrompiamo se non riusciamo ad eliminare
+                return; 
             }
             console.log(`[Regola ${conflictingRule.id} eliminata per sovrascrittura]`);
         } catch (error) {
@@ -470,7 +454,6 @@ document.getElementById('add-rule-form').addEventListener('submit', async (e) =>
         }
     }
 
-    // 4. Se non c'erano conflitti (oppure la vecchia è stata eliminata), aggiungiamo la nuova tramite POST
     try {
         const response = await fetch(ENGINE_API_URL, {
             method: 'POST', 
@@ -479,7 +462,6 @@ document.getElementById('add-rule-form').addEventListener('submit', async (e) =>
         });
         
         if (response.ok) { 
-            // Reset dell'input e ricaricamento regole
             document.getElementById('rule-threshold').value = ''; 
             fetchRules(); 
         } else {
@@ -499,15 +481,12 @@ function showToast(message) {
     const container = document.getElementById('toast-container');
     if (!container) return;
 
-    // Crea l'elemento
     const toast = document.createElement('div');
     toast.className = 'toast';
     toast.innerText = message;
 
-    // Aggiunge in cima
     container.prepend(toast);
 
-    // Rimuove automaticamente dopo 6 secondi
     setTimeout(() => {
         toast.classList.add('fade-out');
         toast.addEventListener('animationend', () => {
@@ -520,7 +499,6 @@ function showToast(message) {
 // FUNZIONI DI MODIFICA ED ELIMINAZIONE REGOLE
 // ==========================================
 
-// 1. Abilita la visualizzazione a form sulla singola card
 window.enableEditMode = function(ruleId) {
     const rule = currentRules.find(r => r.id === ruleId);
     if (!rule) return;
@@ -552,7 +530,6 @@ window.enableEditMode = function(ruleId) {
     `;
 };
 
-// 2. Salva le modifiche (PUT)
 window.saveRuleChanges = async function(ruleId) {
     const updatedRule = {
         operator: document.getElementById(`edit-op-${ruleId}`).value,
@@ -568,7 +545,7 @@ window.saveRuleChanges = async function(ruleId) {
         });
 
         if (response.ok) {
-            fetchRules(); // Ricarica la lista aggiornata
+            fetchRules(); 
         } else {
             alert('Error updating rule.');
         }
@@ -578,7 +555,6 @@ window.saveRuleChanges = async function(ruleId) {
     }
 };
 
-// 3. Elimina regola (DELETE)
 window.deleteRule = async function(ruleId) {
     if (!confirm('Are you sure you want to delete this automation rule?')) return;
     try {
