@@ -259,3 +259,37 @@ body {
     border-radius: 4px;
     margin: 0 0.3rem;
 }
+
+/* Stili per la modifica delle regole inline */
+.btn-blue-outline {
+    background-color: white;
+    color: var(--color-blue);
+    border: 2px solid var(--color-blue);
+    margin-right: 0.5rem;
+}
+
+.rule-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.edit-input {
+    padding: 0.2rem 0.5rem;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: bold;
+    font-size: 1rem;
+    width: 80px;
+    margin: 0 0.3rem;
+}
+
+.edit-select {
+    padding: 0.2rem;
+    border: 2px solid var(--border-color);
+    border-radius: 4px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: bold;
+    font-size: 1rem;
+    margin: 0 0.3rem;
+}

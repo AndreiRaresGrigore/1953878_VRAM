@@ -33,7 +33,12 @@
                     <div><strong>🌡️ Greenhouse Temperature</strong></div>
                     <div class="status-container"><span class="status-badge" id="temp-badge"></span><span class="status-led" id="temp-led"></span></div>
                 </div>
-                <div class="sensor-value" id="temp-val">--</div>
+                <div class="multi-value-container" style="justify-content: center;">
+                    <div>
+                        <div class="multi-value-label">Temperature</div>
+                        <div class="sensor-value" id="temp-val">--</div>
+                    </div>
+                </div>
                 <div class="last-updated" id="temp-time">Waiting for data...</div>
             </div>
 
@@ -42,7 +47,12 @@
                     <div><strong>💦 Entrance Humidity</strong></div>
                     <div class="status-container"><span class="status-badge" id="hum-badge"></span><span class="status-led" id="hum-led"></span></div>
                 </div>
-                <div class="sensor-value" id="hum-val">--</div>
+                <div class="multi-value-container" style="justify-content: center;">
+                    <div>
+                        <div class="multi-value-label">Humidity</div>
+                        <div class="sensor-value" id="hum-val">--</div>
+                    </div>
+                </div>
                 <div class="last-updated" id="hum-time">Waiting for data...</div>
             </div>
 
@@ -51,7 +61,12 @@
                     <div><strong>☁️ CO2 Level</strong></div>
                     <div class="status-container"><span class="status-badge" id="co2-badge"></span><span class="status-led" id="co2-led"></span></div>
                 </div>
-                <div class="sensor-value" id="co2-val">--</div>
+                <div class="multi-value-container" style="justify-content: center;">
+                    <div>
+                        <div class="multi-value-label">CO2</div>
+                        <div class="sensor-value" id="co2-val">--</div>
+                    </div>
+                </div>
                 <div class="last-updated" id="co2-time">Waiting for data...</div>
             </div>
 
@@ -60,7 +75,12 @@
                     <div><strong>🧪 Hydroponic pH</strong></div>
                     <div class="status-container"><span class="status-badge" id="ph-badge"></span><span class="status-led" id="ph-led"></span></div>
                 </div>
-                <div class="sensor-value" id="ph-val">--</div>
+                <div class="multi-value-container" style="justify-content: center;">
+                    <div>
+                        <div class="multi-value-label">pH</div>
+                        <div class="sensor-value" id="ph-val">--</div>
+                    </div>
+                </div>
                 <div class="last-updated" id="ph-time">Waiting for data...</div>
             </div>
 
@@ -81,7 +101,12 @@
                     <div><strong>💨 Corridor Pressure</strong></div>
                     <div class="status-container"><span class="status-badge" id="press-badge"></span><span class="status-led" id="press-led"></span></div>
                 </div>
-                <div class="sensor-value" id="press-val">--</div>
+                <div class="multi-value-container" style="justify-content: center;">
+                    <div>
+                        <div class="multi-value-label">Pressure</div>
+                        <div class="sensor-value" id="press-val">--</div>
+                    </div>
+                </div>
                 <div class="last-updated" id="press-time">Waiting for data...</div>
             </div>                     
 
@@ -98,14 +123,16 @@
                 <div class="last-updated" id="pm-time">Waiting for data...</div>
             </div>
 
-            <div class="sensor-card">
+            <div class="sensor-card" style="grid-column: span 2;">
                 <div class="sensor-header">
                     <div><strong>☣️ Air Quality (VOC)</strong></div>
                     <div class="status-container"><span class="status-badge" id="voc-badge"></span><span class="status-led" id="voc-led"></span></div>
                 </div>
                 <div class="multi-value-container">
-                    <div><div class="multi-value-label">VOC</div><div class="sensor-value" id="voc-ppb-val">--</div></div>
-                    <div><div class="multi-value-label">CO2e</div><div class="sensor-value" id="voc-co2e-val">--</div></div>
+                    
+                    <div><div class="multi-value-label">VOC Index</div><div class="sensor-value" id="voc-val">--</div></div>
+                    <div><div class="multi-value-label">CO2e</div><div class="sensor-value" id="co2e-val">--</div></div>
+                    
                 </div>
                 <div class="last-updated" id="voc-time">Waiting for data...</div>
             </div>
@@ -174,7 +201,12 @@
                     <div><strong>☢️ Radiation</strong></div>
                     <div class="status-container"><span class="status-badge" id="rad-badge"></span><span class="status-led" id="rad-led"></span></div>
                 </div>
-                <div class="sensor-value" id="rad-val">--</div>
+                <div class="multi-value-container" style="justify-content: center;">
+                    <div>
+                        <div class="multi-value-label">Radiation</div>
+                        <div class="sensor-value" id="rad-val">--</div>
+                    </div>
+                </div>
                 <div class="last-updated" id="rad-time">Waiting for data...</div>
             </div>
 
@@ -183,7 +215,12 @@
                     <div><strong>💚 Life Support</strong></div>
                     <div class="status-container"><span class="status-badge" id="life-badge"></span><span class="status-led" id="life-led"></span></div>
                 </div>
-                <div class="sensor-value" id="life-val">--</div>
+                <div class="multi-value-container" style="justify-content: center;">
+                    <div>
+                        <div class="multi-value-label">Oxygen Percentage</div>
+                        <div class="sensor-value" id="life-val">--</div>
+                    </div>
+                </div>
                 <div class="last-updated" id="life-time">Waiting for data...</div>
             </div>
 
@@ -192,7 +229,12 @@
                     <div><strong>🚪 Airlock</strong></div>
                     <div class="status-container"><span class="status-badge" id="airlock-badge"></span><span class="status-led" id="airlock-led"></span></div>
                 </div>
-                <div class="sensor-value" id="airlock-val">--</div>
+                <div class="multi-value-container" style="justify-content: center;">
+                    <div>
+                        <div class="multi-value-label">Rate</div>
+                        <div class="sensor-value" id="airlock-val">--</div>
+                    </div>
+                </div>
                 <div class="last-updated" id="airlock-time">Waiting for data...</div>
             </div>
 
@@ -200,10 +242,63 @@
 
         <h2 class="section-heading">⚙️ Actuators</h2>
         <div class="sensor-grid" style="margin-bottom: 3rem;">
-            <div class="sensor-card"><div class="sensor-header"><div><strong>🌬️ Cooling Fan</strong></div><div class="status-container"><span class="status-led" id="fan-led"></span></div></div><div class="sensor-value" id="fan-val">--</div><div class="last-updated" id="fan-time">Waiting for data...</div></div>
-            <div class="sensor-card"><div class="sensor-header"><div><strong>💧 Entrance Humidifier</strong></div><div class="status-container"><span class="status-led" id="humidifier-led"></span></div></div><div class="sensor-value" id="humidifier-val">--</div><div class="last-updated" id="humidifier-time">Waiting for data...</div></div>
-            <div class="sensor-card"><div class="sensor-header"><div><strong>🌪️ Hall Ventilation</strong></div><div class="status-container"><span class="status-led" id="vent-led"></span></div></div><div class="sensor-value" id="vent-val">--</div><div class="last-updated" id="vent-time">Waiting for data...</div></div>
-            <div class="sensor-card"><div class="sensor-header"><div><strong>🔥 Habitat Heater</strong></div><div class="status-container"><span class="status-led" id="heater-led"></span></div></div><div class="sensor-value" id="heater-val">--</div><div class="last-updated" id="heater-time">Waiting for data...</div></div>
+            
+            <div class="sensor-card">
+                <div class="sensor-header">
+                    <div><strong>🌬️ Cooling Fan</strong></div>
+                    <div class="status-container"><span class="status-led" id="fan-led"></span></div>
+                </div>
+                <div class="multi-value-container" style="justify-content: center;">
+                    <div>
+                        <div class="multi-value-label">State</div>
+                        <div class="sensor-value" id="fan-val">--</div>
+                    </div>
+                </div>
+                <div class="last-updated" id="fan-time">Waiting for data...</div>
+            </div>
+
+            <div class="sensor-card">
+                <div class="sensor-header">
+                    <div><strong>💧 Entrance Humidifier</strong></div>
+                    <div class="status-container"><span class="status-led" id="humidifier-led"></span></div>
+                </div>
+                <div class="multi-value-container" style="justify-content: center;">
+                    <div>
+                        <div class="multi-value-label">State</div>
+                        <div class="sensor-value" id="humidifier-val">--</div>
+                    </div>
+                </div>
+                <div class="last-updated" id="humidifier-time">Waiting for data...</div>
+            </div>
+
+            <div class="sensor-card">
+                <div class="sensor-header">
+                    <div><strong>🌪️ Hall Ventilation</strong></div>
+                    <div class="status-container"><span class="status-led" id="vent-led"></span></div>
+                </div>
+                <div class="multi-value-container" style="justify-content: center;">
+                    <div>
+                        <div class="multi-value-label">State</div>
+                        <div class="sensor-value" id="vent-val">--</div>
+                    </div>
+                </div>
+                <div class="last-updated" id="vent-time">Waiting for data...</div>
+            </div>
+
+            <div class="sensor-card">
+                <div class="sensor-header">
+                    <div><strong>🔥 Habitat Heater</strong></div>
+                    <div class="status-container"><span class="status-led" id="heater-led"></span></div>
+                </div>
+                <div class="multi-value-container" style="justify-content: center;">
+                    <div>
+                        <div class="multi-value-label">State</div>
+                        <div class="sensor-value" id="heater-val">--</div>
+                    </div>
+                </div>
+                <div class="last-updated" id="heater-time">Waiting for data...</div>
+            </div>
+            
         </div>
     </div>
 

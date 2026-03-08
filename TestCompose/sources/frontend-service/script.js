@@ -29,7 +29,6 @@ const timeElementMap = {
     "habitat_heater": "heater-time"
 };
 
-// Mappa aggiornata per il menu a tendina delle Automation Rules!
 const sensorMetricsMap = {
     "greenhouse_temperature": ["temperature_c"],
     "entrance_humidity": ["humidity_pct"],
@@ -42,7 +41,7 @@ const sensorMetricsMap = {
     "mars/telemetry/solar_array": ["power_kw", "voltage_v", "current_a", "cumulative_kwh"],
     "mars/telemetry/power_bus": ["power_kw", "voltage_v", "current_a", "cumulative_kwh"],
     "mars/telemetry/power_consumption": ["power_kw", "voltage_v", "current_a", "cumulative_kwh"],
-    "mars/telemetry/radiation": ["radiation_usv_h"],
+    "mars/telemetry/radiation": ["radiation_uSv_h"],
     "mars/telemetry/life_support": ["oxygen_percent"],
     "mars/telemetry/thermal_loop": ["temperature_c", "flow_l_min"],
     "mars/telemetry/airlock": ["cycles_per_hour"]
@@ -138,7 +137,7 @@ client.on('message', (topic, message) => {
     try {
         const payload = JSON.parse(message.toString());
         console.log(`[Live Data] ${topic}:`, payload);
-
+        
         // Timer update
         const timeId = timeElementMap[payload.sensor_id];
         if (timeId) {
@@ -146,22 +145,21 @@ client.on('message', (topic, message) => {
             updateTimeDisplay(timeId); 
         }
 
-        // Helpers per estrarre valori in modo sicuro dall'array
+        // Helpers per estrarre valori
         const getMeasure = (pName) => payload.measurements ? payload.measurements.find(m => m.parameter === pName) : null;
-        const getFirstMeasure = () => payload.measurements && payload.measurements.length > 0 ? payload.measurements[0] : null;
 
-        // Smistamento Switch con destrutturazione esplicita delle metriche
+        // Smistamento Switch con iniezione esclusiva di Valore + Unità (Zero etichette testuali)
         switch(payload.sensor_id) {
             
             // -- REST SENSORS --
             case "greenhouse_temperature": {
-                const m = getMeasure("temperature_c") || getFirstMeasure();
-                if (m) document.getElementById('temp-val').innerText = `Temperature: ${m.value} ${m.unit}`;
+                const temp = getMeasure("temperature_c");
+                if (temp) document.getElementById('temp-val').innerText = `${temp.value} ${temp.unit}`;
                 updateStatusDisplay('temp-led', 'temp-badge', payload.status); break;
             }
             case "corridor_pressure": {
-                const m = getMeasure("pressure_kpa") || getFirstMeasure();
-                if (m) document.getElementById('press-val').innerText = `Pressure: ${m.value} ${m.unit}`;
+                const m = getMeasure("pressure_kpa");
+                if (m) document.getElementById('press-val').innerText = `${m.value} ${m.unit}`;
                 updateStatusDisplay('press-led', 'press-badge', payload.status); break;
             }
             case "water_tank_level": {
@@ -171,13 +169,13 @@ client.on('message', (topic, message) => {
                 updateStatusDisplay('water-led', 'water-badge', payload.status); break;
             }
             case "co2_hall": {
-                const m = getMeasure("co2_ppm") || getFirstMeasure();
-                if (m) document.getElementById('co2-val').innerText = `CO2: ${m.value} ${m.unit}`;
+                const m = getMeasure("co2_ppm");
+                if (m) document.getElementById('co2-val').innerText = `${m.value} ${m.unit}`;
                 updateStatusDisplay('co2-led', 'co2-badge', payload.status); break;
             }
             case "entrance_humidity": {
-                const m = getMeasure("humidity_pct") || getFirstMeasure();
-                if (m) document.getElementById('hum-val').innerText = `Humidity: ${m.value} ${m.unit}`;
+                const m = getMeasure("humidity_pct");
+                if (m) document.getElementById('hum-val').innerText = `${m.value} ${m.unit}`;
                 updateStatusDisplay('hum-led', 'hum-badge', payload.status); break;
             }
             case "air_quality_pm25": {
@@ -188,16 +186,15 @@ client.on('message', (topic, message) => {
                 updateStatusDisplay('pm-led', 'pm-badge', payload.status); break;
             }
             case "air_quality_voc": {
-                const voc = getMeasure("voc_ppb"); 
-                const co2e = getMeasure("co2e_ppm");
-                if (voc) document.getElementById('voc-ppb-val').innerText = `${voc.value} ${voc.unit}`;
-                if (co2e) document.getElementById('voc-co2e-val').innerText = `${co2e.value} ${co2e.unit}`;
+                const m = getMeasure("voc_ppb"); const n = getMeasure("co2e_ppm");
+                if (m) document.getElementById('voc-val').innerText = `${m.value} ${m.unit || ''}`;
+                if (n) document.getElementById('co2e-val').innerText = `${n.value} ${n.unit || ''}`;
                 updateStatusDisplay('voc-led', 'voc-badge', payload.status); 
                 break;
             }
             case "hydroponic_ph": {
-                const m = getMeasure("ph") || getFirstMeasure();
-                if (m) document.getElementById('ph-val').innerText = `pH: ${m.value}${m.unit ? ' '+m.unit : ''}`;
+                const m = getMeasure("ph");
+                if (m) document.getElementById('ph-val').innerText = `${m.value}${m.unit ? ' '+m.unit : ''}`;
                 updateStatusDisplay('ph-led', 'ph-badge', payload.status); break;
             }
 
@@ -233,19 +230,18 @@ client.on('message', (topic, message) => {
                 updateStatusDisplay('thermal-led', 'thermal-badge', payload.status); break;
             }
             case "mars/telemetry/radiation": {
-                const m = getMeasure("radiation_usv_h") || getFirstMeasure();
-                if (m) document.getElementById('rad-val').innerText = `Radiation: ${m.value} ${m.unit}`;
+                const m = getMeasure("radiation_uSv_h");
+                if (m) document.getElementById('rad-val').innerText = `${m.value} ${m.unit}`;
                 updateStatusDisplay('rad-led', 'rad-badge', payload.status); break;
             }
             case "mars/telemetry/life_support": {
-                // Aggiunta esplicita della scritta per l'ossigeno richiesta
-                const m = getMeasure("oxygen_percent") || getFirstMeasure();
-                if (m) document.getElementById('life-val').innerText = `Oxygen: ${m.value} ${m.unit}`;
+                const m = getMeasure("oxygen_percent");
+                if (m) document.getElementById('life-val').innerText = `${m.value} ${m.unit}`;
                 updateStatusDisplay('life-led', 'life-badge', payload.status); break;
             }
             case "mars/telemetry/airlock": {
-                const m = getMeasure("cycles_per_hour") || getFirstMeasure();
-                if (m) document.getElementById('airlock-val').innerText = `Rate: ${m.value} ${m.unit}`;
+                const m = getMeasure("cycles_per_hour");
+                if (m) document.getElementById('airlock-val').innerText = `${m.value} ${m.unit}`;
                 updateStatusDisplay('airlock-led', 'airlock-badge', payload.status); break;
             }
         }
@@ -291,60 +287,114 @@ function updateMetricOptions() {
     }
 }
 
+// Memorizza temporaneamente le regole caricate per la modalità edit
+let currentRules = [];
+
 async function fetchRules() {
     const listContainer = document.getElementById('rules-list');
     try {
         const response = await fetch(ENGINE_API_URL);
         if (!response.ok) throw new Error("Errore nel caricamento delle regole");
-        const rules = await response.json();
+        currentRules = await response.json();
         listContainer.innerHTML = ''; 
-        if (rules.length === 0) {
+        
+        if (currentRules.length === 0) {
             listContainer.innerHTML = '<p style="color: #666;">No active rules found. Create one above.</p>';
             return;
         }
-        rules.forEach(rule => {
+        
+        currentRules.forEach(rule => {
             const ruleElement = document.createElement('div');
             ruleElement.className = 'rule-card';
+            ruleElement.id = `rule-card-${rule.id}`;
             const metricDisplay = rule.metric ? `.<span class="highlight">${rule.metric}</span>` : '';
+            
+            // Modalità visualizzazione standard
             ruleElement.innerHTML = `
-                <div class="rule-logic">
+                <div class="rule-logic" id="rule-logic-${rule.id}">
                     IF <span class="highlight">${rule.sensor_id}</span>${metricDisplay} 
                     ${rule.operator} <span class="highlight">${rule.threshold}</span> 
                     THEN SET <span class="highlight">${rule.actuator_name}</span> 
                     TO <span class="highlight">${rule.actuator_state}</span>
                 </div>
-                <button class="btn btn-red" onclick="deleteRule(${rule.id})">🗑️ Delete</button>
+                <div class="rule-actions" id="rule-actions-${rule.id}">
+                    <button class="btn btn-blue-outline" onclick="enableEditMode(${rule.id})">✏️ Edit</button>
+                    <button class="btn btn-red" onclick="deleteRule(${rule.id})">🗑️ Delete</button>
+                </div>
             `;
             listContainer.appendChild(ruleElement);
         });
-    } catch (error) { listContainer.innerHTML = '<p style="color: red;">⚠️ Cannot connect to Automation Engine API.</p>'; }
+    } catch (error) { 
+        listContainer.innerHTML = '<p style="color: red;">⚠️ Cannot connect to Automation Engine API.</p>'; 
+    }
 }
 
-document.getElementById('add-rule-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const newRule = {
-        sensor_id: document.getElementById('rule-sensor').value,
-        metric: document.getElementById('rule-metric').value,
-        operator: document.getElementById('rule-operator').value,
-        threshold: parseFloat(document.getElementById('rule-threshold').value),
-        actuator_name: document.getElementById('rule-actuator').value,
-        actuator_state: document.getElementById('rule-state').value,
-        description: 'Created from Frontend'
+// Abilita la modalità modifica inline per una regola specifica
+function enableEditMode(ruleId) {
+    const rule = currentRules.find(r => r.id === ruleId);
+    if (!rule) return;
+
+    const logicDiv = document.getElementById(`rule-logic-${ruleId}`);
+    const actionsDiv = document.getElementById(`rule-actions-${ruleId}`);
+    const metricDisplay = rule.metric ? `.<span class="highlight">${rule.metric}</span>` : '';
+
+    // Costruisce i campi di input pre-popolati
+    logicDiv.innerHTML = `
+        IF <span class="highlight" style="background-color:#e5e7eb;">${rule.sensor_id}</span>${metricDisplay}
+        <select class="edit-select" id="edit-op-${rule.id}">
+            <option value=">" ${rule.operator === '>' ? 'selected' : ''}>></option>
+            <option value=">=" ${rule.operator === '>=' ? 'selected' : ''}>>=</option>
+            <option value="=" ${rule.operator === '=' ? 'selected' : ''}>=</option>
+            <option value="<=" ${rule.operator === '<=' ? 'selected' : ''}><=</option>
+            <option value="<" ${rule.operator === '<' ? 'selected' : ''}><</option>
+        </select>
+        <input type="number" step="0.1" class="edit-input" id="edit-thresh-${rule.id}" value="${rule.threshold}">
+        THEN SET <span class="highlight" style="background-color:#e5e7eb;">${rule.actuator_name}</span> TO
+        <select class="edit-select" id="edit-state-${rule.id}">
+            <option value="ON" ${rule.actuator_state === 'ON' ? 'selected' : ''}>ON</option>
+            <option value="OFF" ${rule.actuator_state === 'OFF' ? 'selected' : ''}>OFF</option>
+        </select>
+    `;
+
+    // Cambia i bottoni in Salva/Annulla
+    actionsDiv.innerHTML = `
+        <button class="btn btn-green" onclick="saveRuleChanges(${rule.id})">💾 Save</button>
+        <button class="btn btn-blue-outline" onclick="fetchRules()" style="border-color: #999; color: #666;">Cancel</button>
+    `;
+}
+
+// Invia le modifiche all'API tramite PUT
+async function saveRuleChanges(ruleId) {
+    const updatedRule = {
+        operator: document.getElementById(`edit-op-${ruleId}`).value,
+        threshold: parseFloat(document.getElementById(`edit-thresh-${ruleId}`).value),
+        actuator_state: document.getElementById(`edit-state-${ruleId}`).value
     };
 
     try {
-        const response = await fetch(ENGINE_API_URL, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newRule)
+        const response = await fetch(`${ENGINE_API_URL}/${ruleId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedRule)
         });
-        if (response.ok) { document.getElementById('rule-threshold').value = ''; fetchRules(); } 
-        else alert('Error adding rule.');
-    } catch (error) { alert('Cannot reach the Automation Engine.'); }
-});
+
+        if (response.ok) {
+            fetchRules(); // Ricarica la lista per mostrare la regola aggiornata
+        } else {
+            alert('Error updating rule.');
+        }
+    } catch (error) {
+        console.error("Errore aggiornamento:", error);
+        alert('Cannot reach the Automation Engine.');
+    }
+}
 
 async function deleteRule(ruleId) {
-    if (!confirm('Are you sure?')) return;
+    if (!confirm('Are you sure you want to delete this automation rule?')) return;
     try {
         const response = await fetch(`${ENGINE_API_URL}/${ruleId}`, { method: 'DELETE' });
         if (response.ok) fetchRules(); 
-    } catch (error) {}
+    } catch (error) {
+        console.error(error);
+    }
 }
