@@ -1,6 +1,7 @@
 services:
 
   simulator:
+    restart: unless-stopped
     image: mars-iot-simulator:multiarch_v1
     ports:
       - "8080:8080"
@@ -13,6 +14,7 @@ services:
       retries: 5
 
   rabbitmq:
+    restart: unless-stopped
     image: rabbitmq:3-management
     volumes:
       - ./templates/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
@@ -32,6 +34,7 @@ services:
       retries: 5
 
   ingestion-service:
+    restart: unless-stopped
     build: ./sources/ingestion-service
     volumes:
       - ./templates/ingestion-service/config.yaml:/app/config.yaml
@@ -43,14 +46,16 @@ services:
         condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
     networks:
       - mars-net
 
   automation-engine:
+    restart: unless-stopped
     build: ./sources/automation-engine
     volumes:
       - ./templates/automation-engine/config.yaml:/app/config.yaml
-      - ./data/automation-data:/data
+      - automation-data:/data
     ports:
       - "8081:8081"     # REST API (rules + state)
     depends_on:
@@ -60,6 +65,7 @@ services:
         condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
       - DB_PATH=/data/rules.db
     networks:
       - mars-net
@@ -80,4 +86,4 @@ networks:
     driver: bridge
 
 volumes:
-  automation-data:   # persists SQLite rules.db across restarts
+  - automation-data:/data
