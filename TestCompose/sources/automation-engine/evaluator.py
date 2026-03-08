@@ -60,7 +60,12 @@ def _extract(event: dict) -> tuple[str, float | None]:
     return event.get("metric", ""), event.get("value")
 
 def evaluate_rules(event: dict, rules: list[dict]) -> list[dict]:
-    """Return the list of rules whose conditions are satisfied by *event*."""
+    """Return the list of rules whose conditions are satisfied by *event*.
+
+    Priority: rules are assumed to be sorted by position ASC (get_rules() guarantees
+    this). When two triggered rules target the same actuator, only the one with the
+    lower position value (higher priority) fires — the others are silently dropped.
+    """
     triggered = []
     sensor_id = event.get("sensor_id", "")
 
@@ -74,7 +79,7 @@ def evaluate_rules(event: dict, rules: list[dict]) -> list[dict]:
     else:
         pairs = [(event.get("metric", ""), event.get("value"))]
 
-    already_triggered = set()  # avoid duplicate actuator commands per event
+    already_triggered = set()  # avoid duplicate rule IDs per event
 
     for metric, value in pairs:
         if value is None:
@@ -103,4 +108,29 @@ def evaluate_rules(event: dict, rules: list[dict]) -> list[dict]:
             except Exception as e:
                 print(f"[EVALUATOR] Rule {rule['id']} error: {e}")
 
-    return triggered
+    # Priority filtering: for each actuator, keep only the highest-priority rule
+    # (lowest position value). Since 'rules' is already sorted by position ASC,
+    # the first encountered winner for each actuator is the correct one.
+    winner_per_actuator: dict[str, dict] = {}
+    for rule in triggered:
+        actuator = rule["actuator_name"]
+        if actuator not in winner_per_actuator:
+            winner_per_actuator[actuator] = rule
+        else:
+            existing_pos = winner_per_actuator[actuator].get("position", 0)
+            this_pos     = rule.get("position", 0)
+            if this_pos < existing_pos:
+                print(
+                    f"[PRIORITY] Rule #{rule['id']} (pos={this_pos}) overrides "
+                    f"Rule #{winner_per_actuator[actuator]['id']} (pos={existing_pos}) "
+                    f"for actuator '{actuator}'"
+                )
+                winner_per_actuator[actuator] = rule
+            else:
+                print(
+                    f"[PRIORITY] Rule #{rule['id']} (pos={this_pos}) suppressed by "
+                    f"Rule #{winner_per_actuator[actuator]['id']} (pos={existing_pos}) "
+                    f"for actuator '{actuator}'"
+                )
+
+    return list(winner_per_actuator.values())

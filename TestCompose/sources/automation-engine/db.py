@@ -3,6 +3,7 @@ db.py — SQLite-backed rule persistence.
 
 Rule schema:
   id            INTEGER PRIMARY KEY AUTOINCREMENT
+  position      INTEGER UNIQUE  — priority order (1 = highest priority)
   sensor_id     TEXT    — e.g. "greenhouse_temperature"
   metric        TEXT    — e.g. "temperature_c"  (optional filter; if empty, matches any metric for that sensor)
   operator      TEXT    — one of: <  <=  =  >=  >
@@ -26,6 +27,7 @@ def init_db():
         con.execute("""
             CREATE TABLE IF NOT EXISTS rules (
                 id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                position       INTEGER NOT NULL DEFAULT 0,
                 sensor_id      TEXT    NOT NULL,
                 metric         TEXT    NOT NULL DEFAULT '',
                 operator       TEXT    NOT NULL,
@@ -35,19 +37,48 @@ def init_db():
                 description    TEXT    NOT NULL DEFAULT ''
             )
         """)
+        # Migration: add position column if it doesn't exist (for existing DBs)
+        try:
+            con.execute("ALTER TABLE rules ADD COLUMN position INTEGER NOT NULL DEFAULT 0")
+            print("[DB] Added 'position' column to existing table")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
+
+        # Assign positions to any rules that have position = 0 (e.g. after migration)
+        cur = con.execute("SELECT id FROM rules WHERE position = 0 ORDER BY id ASC")
+        unpositioned = [row[0] for row in cur.fetchall()]
+        if unpositioned:
+            # Find the current max position (excluding the 0s we're about to fix)
+            cur2 = con.execute("SELECT MAX(position) FROM rules WHERE position != 0")
+            max_pos = cur2.fetchone()[0] or 0
+            for rule_id in unpositioned:
+                max_pos += 1
+                con.execute("UPDATE rules SET position = ? WHERE id = ?", (max_pos, rule_id))
+            print(f"[DB] Assigned positions to {len(unpositioned)} existing rule(s)")
+
         con.commit()
     print(f"[DB] Initialized at {DB_PATH}")
 
+def _next_position(con) -> int:
+    """Return the next available position (max + 1)."""
+    cur = con.execute("SELECT MAX(position) FROM rules")
+    max_pos = cur.fetchone()[0]
+    return (max_pos or 0) + 1
+
 def get_rules() -> list[dict]:
     with _conn() as con:
-        cur = con.execute("SELECT id, sensor_id, metric, operator, threshold, actuator_name, actuator_state, description FROM rules")
+        cur = con.execute(
+            "SELECT id, position, sensor_id, metric, operator, threshold, "
+            "actuator_name, actuator_state, description FROM rules ORDER BY position ASC"
+        )
         cols = [c[0] for c in cur.description]
         return [dict(zip(cols, row)) for row in cur.fetchall()]
 
 def get_rule_by_id(rule_id: int) -> dict | None:
     with _conn() as con:
         cur = con.execute(
-            "SELECT id, sensor_id, metric, operator, threshold, actuator_name, actuator_state, description FROM rules WHERE id = ?",
+            "SELECT id, position, sensor_id, metric, operator, threshold, "
+            "actuator_name, actuator_state, description FROM rules WHERE id = ?",
             (rule_id,)
         )
         cols = [c[0] for c in cur.description]
@@ -57,9 +88,11 @@ def get_rule_by_id(rule_id: int) -> dict | None:
 def add_rule(sensor_id: str, metric: str, operator: str, threshold: float,
              actuator_name: str, actuator_state: str, description: str = "") -> dict:
     with _conn() as con:
+        position = _next_position(con)
         cur = con.execute(
-            "INSERT INTO rules (sensor_id, metric, operator, threshold, actuator_name, actuator_state, description) VALUES (?,?,?,?,?,?,?)",
-            (sensor_id, metric, operator, threshold, actuator_name, actuator_state, description)
+            "INSERT INTO rules (position, sensor_id, metric, operator, threshold, "
+            "actuator_name, actuator_state, description) VALUES (?,?,?,?,?,?,?,?)",
+            (position, sensor_id, metric, operator, threshold, actuator_name, actuator_state, description)
         )
         con.commit()
         return get_rule_by_id(cur.lastrowid)
@@ -81,3 +114,53 @@ def update_rule(rule_id: int, **kwargs) -> dict | None:
         con.execute(f"UPDATE rules SET {set_clause} WHERE id = ?", values)
         con.commit()
     return get_rule_by_id(rule_id)
+
+def _swap_positions(con, rule_id_a: int, pos_a: int, rule_id_b: int, pos_b: int):
+    """Atomically swap positions of two rules using a temporary sentinel."""
+    TEMP = -1
+    con.execute("UPDATE rules SET position = ? WHERE id = ?", (TEMP, rule_id_a))
+    con.execute("UPDATE rules SET position = ? WHERE id = ?", (pos_a, rule_id_b))
+    con.execute("UPDATE rules SET position = ? WHERE id = ?", (pos_b, rule_id_a))
+
+def move_rule(rule_id: int, direction: str) -> tuple[bool, str]:
+    """Move a rule up or down in priority order.
+
+    'up'   → increases priority (lower position number)
+    'down' → decreases priority (higher position number)
+
+    Only adjacent rules (consecutive in ordered list) are swapped.
+    Returns (success, error_message).
+    """
+    if direction not in ("up", "down"):
+        return False, "direction must be 'up' or 'down'"
+
+    with _conn() as con:
+        cur = con.execute("SELECT id, position FROM rules ORDER BY position ASC")
+        rows = cur.fetchall()  # list of (id, position)
+
+    ids_in_order = [r[0] for r in rows]
+    pos_map      = {r[0]: r[1] for r in rows}
+
+    if rule_id not in ids_in_order:
+        return False, "Rule not found"
+
+    idx = ids_in_order.index(rule_id)
+
+    if direction == "up":
+        if idx == 0:
+            return False, "Rule is already at the top"
+        neighbor_id = ids_in_order[idx - 1]
+    else:  # down
+        if idx == len(ids_in_order) - 1:
+            return False, "Rule is already at the bottom"
+        neighbor_id = ids_in_order[idx + 1]
+
+    with _conn() as con:
+        _swap_positions(
+            con,
+            rule_id,      pos_map[rule_id],
+            neighbor_id,  pos_map[neighbor_id],
+        )
+        con.commit()
+
+    return True, ""
