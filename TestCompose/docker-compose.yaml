@@ -1,5 +1,4 @@
 services:
-
   simulator:
     restart: unless-stopped
     image: mars-iot-simulator:multiarch_v1
@@ -33,6 +32,26 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres:
+    restart: unless-stopped
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=mars
+      - POSTGRES_PASSWORD=mars_password
+      - POSTGRES_DB=mars_db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./templates/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql  # opzionale
+    ports:
+      - "5432:5432"
+    networks:
+      - mars-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mars -d mars_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   ingestion-service:
     restart: unless-stopped
     build: ./sources/ingestion-service
@@ -44,9 +63,16 @@ services:
         condition: service_healthy
       simulator:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=mars_db
+      - DB_USER=mars
+      - DB_PASSWORD=mars_password
     networks:
       - mars-net
 
@@ -63,10 +89,17 @@ services:
         condition: service_healthy
       simulator:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - DB_PATH=/data/rules.db
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=mars_db
+      - DB_USER=mars
+      - DB_PASSWORD=mars_password
     networks:
       - mars-net
 
@@ -86,4 +119,5 @@ networks:
     driver: bridge
 
 volumes:
-  - automation-data:/data
+  automation-data:
+  postgres-data:
