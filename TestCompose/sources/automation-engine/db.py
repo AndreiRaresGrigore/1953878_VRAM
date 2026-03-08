@@ -59,12 +59,6 @@ def init_db():
         con.commit()
     print(f"[DB] Initialized at {DB_PATH}")
 
-def _next_position(con) -> int:
-    """Return the next available position (max + 1)."""
-    cur = con.execute("SELECT MAX(position) FROM rules")
-    max_pos = cur.fetchone()[0]
-    return (max_pos or 0) + 1
-
 def get_rules() -> list[dict]:
     with _conn() as con:
         cur = con.execute(
@@ -88,7 +82,10 @@ def get_rule_by_id(rule_id: int) -> dict | None:
 def add_rule(sensor_id: str, metric: str, operator: str, threshold: float,
              actuator_name: str, actuator_state: str, description: str = "") -> dict:
     with _conn() as con:
-        position = _next_position(con)
+        con.execute("UPDATE rules SET position = position + 1")
+        
+        position = 1
+        
         cur = con.execute(
             "INSERT INTO rules (position, sensor_id, metric, operator, threshold, "
             "actuator_name, actuator_state, description) VALUES (?,?,?,?,?,?,?,?)",

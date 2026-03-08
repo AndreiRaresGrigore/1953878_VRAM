@@ -27,6 +27,9 @@ SIMULATOR_URL = config["simulator_url"]
 sensor_state: dict = {}
 state_lock = threading.Lock()
 
+manual_overrides = set()
+last_actuator_states = {} # Memoria interna per inviare notifiche solo se lo stato CAMBIA
+
 # ============================================================
 # MQTT CLIENT
 # ============================================================
@@ -47,10 +50,17 @@ def on_message(client, userdata, msg):
             return
 
         with state_lock:
+            # 1. Aggiorna la cache globale con l'ultimo valore arrivato
             sensor_state[sensor_id] = event
+            
+            # 2. Crea un'istantanea sicura di tutto il sistema da inviare all'evaluator
+            current_state = dict(sensor_state)
 
-        rules    = get_rules()
-        triggered = evaluate_rules(event, rules)
+        rules = get_rules()
+        
+        # 3. Passa TUTTO LO STATO al motore di valutazione invece del singolo evento
+        triggered = evaluate_rules(current_state, rules)
+        
         for rule in triggered:
             fire_actuator(rule)
 
@@ -62,13 +72,35 @@ def on_message(client, userdata, msg):
 # ============================================================
 
 def fire_actuator(rule: dict):
-    """Send actuator command to the simulator REST API."""
     actuator = rule["actuator_name"]
-    state    = rule["actuator_state"]
-    url      = f"{SIMULATOR_URL}/api/actuators/{actuator}"
+    
+    # SE L'ATTUATORE E' IN MANUALE, IGNORA LA REGOLA!
+    if actuator in manual_overrides:
+        return 
+
+    state = rule["actuator_state"]
+
+    # EDGE TRIGGER: Se l'attuatore è già nello stato desiderato, ignora la regola (zero spam)
+    if last_actuator_states.get(actuator) == state:
+        return
+
+    url = f"{SIMULATOR_URL}/api/actuators/{actuator}"
     try:
         resp = requests.post(url, json={"state": state}, timeout=5)
-        print(f"[ACTUATOR] {actuator} -> {state} (HTTP {resp.status_code})")
+        print(f"[ACTUATOR AUTO] {actuator} -> {state} (HTTP {resp.status_code})")
+        
+        # Invia la notifica toast SOLO al primo innesco (cambio di stato effettivo)
+        if resp.status_code in (200, 201):
+            last_actuator_states[actuator] = state # Aggiorna la memoria
+            
+            msg = json.dumps({
+                "type": "RULE_TRIGGER",
+                "actuator": actuator,
+                "state": state,
+                "rule_id": rule.get("id"),
+                "text": f"Rule #{rule.get('id')} triggered: {actuator} set to {state}"
+            })
+            mqtt_client.publish("mars/automation/alerts", msg)
     except Exception as e:
         print(f"[ACTUATOR] Failed to set {actuator}: {e}")
 
@@ -81,6 +113,11 @@ def set_actuator_manual(actuator: str, state: str) -> bool:
     except Exception as e:
         print(f"[ACTUATOR] Manual set failed for {actuator}: {e}")
         return False
+
+def clear_actuator_override(actuator: str):
+    manual_overrides.discard(actuator) # Sblocca l'automazione
+    last_actuator_states.pop(actuator, None) # Dimentica lo stato: al prossimo giro la regola forzerà l'aggiornamento
+    print(f"[ACTUATOR MODE] {actuator} is now AUTO")
 
 def get_actuator_states() -> list:
     """Proxy the simulator's actuator list to the frontend."""

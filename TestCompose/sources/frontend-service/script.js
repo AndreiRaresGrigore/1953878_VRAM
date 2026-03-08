@@ -138,6 +138,13 @@ client.on('message', (topic, message) => {
         const payload = JSON.parse(message.toString());
         console.log(`[Live Data] ${topic}:`, payload);
         
+        if (topic === 'mars/automation/alerts') {
+            if (payload.type === 'RULE_TRIGGER') {
+                showToast(`🤖 AUTOMATION: ${payload.text}`);
+            }
+            return;
+        }
+
         // Timer update
         const timeId = timeElementMap[payload.sensor_id];
         if (timeId) {
@@ -341,7 +348,7 @@ async function fetchRules() {
             ruleElement.innerHTML = `
                 <div style="margin-right: 1rem; text-align: center; min-width: 45px;">
                     <div style="font-size: 0.65rem; color: #666; font-weight: bold;">Priority</div>
-                    <div style="font-size: 1.1rem; font-weight: 700; color: var(--color-purple);">#${rule.position}</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: var(--color-purple);">#${index + 1}</div>
                 </div>
                 <div class="rule-logic" id="rule-logic-${rule.id}" style="flex: 1;">
                     IF <span class="highlight">${rule.sensor_id}</span>${metricDisplay} 
@@ -484,3 +491,102 @@ document.getElementById('add-rule-form').addEventListener('submit', async (e) =>
         alert('Cannot reach the Automation Engine per aggiungere la regola.'); 
     }
 });
+
+// ==========================================
+// TOAST NOTIFICATIONS MANAGER
+// ==========================================
+function showToast(message) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    // Crea l'elemento
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerText = message;
+
+    // Aggiunge in cima
+    container.prepend(toast);
+
+    // Rimuove automaticamente dopo 6 secondi
+    setTimeout(() => {
+        toast.classList.add('fade-out');
+        toast.addEventListener('animationend', () => {
+            toast.remove();
+        });
+    }, 6000);
+}
+
+// ==========================================
+// FUNZIONI DI MODIFICA ED ELIMINAZIONE REGOLE
+// ==========================================
+
+// 1. Abilita la visualizzazione a form sulla singola card
+window.enableEditMode = function(ruleId) {
+    const rule = currentRules.find(r => r.id === ruleId);
+    if (!rule) return;
+
+    const logicDiv = document.getElementById(`rule-logic-${ruleId}`);
+    const actionsDiv = document.getElementById(`rule-actions-${ruleId}`);
+    const metricDisplay = rule.metric ? `.<span class="highlight">${rule.metric}</span>` : '';
+
+    logicDiv.innerHTML = `
+        IF <span class="highlight" style="background-color:#e5e7eb;">${rule.sensor_id}</span>${metricDisplay}
+        <select class="edit-select" id="edit-op-${rule.id}">
+            <option value=">" ${rule.operator === '>' ? 'selected' : ''}>></option>
+            <option value=">=" ${rule.operator === '>=' ? 'selected' : ''}>>=</option>
+            <option value="=" ${rule.operator === '=' ? 'selected' : ''}>=</option>
+            <option value="<=" ${rule.operator === '<=' ? 'selected' : ''}><=</option>
+            <option value="<" ${rule.operator === '<' ? 'selected' : ''}><</option>
+        </select>
+        <input type="number" step="0.1" class="edit-input" id="edit-thresh-${rule.id}" value="${rule.threshold}">
+        THEN SET <span class="highlight" style="background-color:#e5e7eb;">${rule.actuator_name}</span> TO
+        <select class="edit-select" id="edit-state-${rule.id}">
+            <option value="ON" ${rule.actuator_state === 'ON' ? 'selected' : ''}>ON</option>
+            <option value="OFF" ${rule.actuator_state === 'OFF' ? 'selected' : ''}>OFF</option>
+        </select>
+    `;
+
+    actionsDiv.innerHTML = `
+        <button class="btn-move" onclick="saveRuleChanges(${rule.id})" style="background-color: var(--color-green); border-color: var(--border-color); color: black;">💾 Save</button>
+        <button class="btn-blue-outline" onclick="fetchRules()">Cancel</button>
+    `;
+};
+
+// 2. Salva le modifiche (PUT)
+window.saveRuleChanges = async function(ruleId) {
+    const updatedRule = {
+        operator: document.getElementById(`edit-op-${ruleId}`).value,
+        threshold: parseFloat(document.getElementById(`edit-thresh-${ruleId}`).value),
+        actuator_state: document.getElementById(`edit-state-${ruleId}`).value
+    };
+
+    try {
+        const response = await fetch(`${ENGINE_API_URL}/${ruleId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedRule)
+        });
+
+        if (response.ok) {
+            fetchRules(); // Ricarica la lista aggiornata
+        } else {
+            alert('Error updating rule.');
+        }
+    } catch (error) {
+        console.error("Errore aggiornamento:", error);
+        alert('Cannot reach the Automation Engine.');
+    }
+};
+
+// 3. Elimina regola (DELETE)
+window.deleteRule = async function(ruleId) {
+    if (!confirm('Are you sure you want to delete this automation rule?')) return;
+    try {
+        const response = await fetch(`${ENGINE_API_URL}/${ruleId}`, { method: 'DELETE' });
+        if (response.ok) fetchRules(); 
+        else alert('Error deleting rule.');
+    } catch (error) {
+        console.error(error);
+        alert('Cannot reach the Automation Engine.');
+    }
+};

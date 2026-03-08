@@ -279,3 +279,45 @@ body {
     gap: 0.5rem;
     align-items: center;
 }
+
+/* ==========================================
+   TOAST NOTIFICATIONS (POPUP)
+   ========================================== */
+.toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 9999;
+}
+
+.toast {
+    background-color: var(--color-yellow);
+    border: var(--brutal-border);
+    box-shadow: var(--brutal-shadow);
+    padding: 1rem 1.5rem;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: var(--border-color);
+    animation: slideIn 0.3s ease-out forwards;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(120%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.toast.fade-out {
+    animation: fadeOut 0.3s ease-in forwards;
+}
+
+@keyframes fadeOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(120%); opacity: 0; }
+}

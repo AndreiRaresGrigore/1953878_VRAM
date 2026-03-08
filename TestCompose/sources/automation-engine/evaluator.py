@@ -1,18 +1,5 @@
 """
-evaluator.py — evaluates incoming sensor events against persisted rules.
-
-Supports two event shapes published by the ingestion service:
-
-  Flat (original):
-    { "sensor_id": "...", "metric": "temperature_c", "value": 23.5, ... }
-
-  Nested (current normalizer):
-    { "sensor_id": "...", "measurements": {"metric": "temperature_c", "value": 23.5}, ... }
-
-An event matches a rule when:
-  1. event["sensor_id"] == rule["sensor_id"]
-  2. rule["metric"] is empty OR resolved metric == rule["metric"]
-  3. evaluate(resolved value, rule["operator"], rule["threshold"]) is True
+evaluator.py — evaluates rules against the global sensor state cache.
 """
 
 import operator as op_module
@@ -31,106 +18,64 @@ def _apply(value: float, operator: str, threshold: float) -> bool:
         raise ValueError(f"Unknown operator: {operator}")
     return fn(value, threshold)
 
-def _extract(event: dict) -> tuple[str, float | None]:
-    """Return (metric, value) from either flat or nested event shape.
-
-    Supported shapes:
-      Flat:       { "metric": "temperature_c", "value": 23.5, ... }
-      Dict:       { "measurements": {"metric": "temperature_c", "value": 23.5}, ... }
-      List (current normalizer):
-                  { "measurements": [{"parameter": "temperature_c", "value": 23.5}, ...], ... }
-    For the list shape the first measurement is used as the representative value;
-    evaluate_rules() iterates over all measurements so each metric gets checked.
+def evaluate_rules(sensor_state: dict, rules: list[dict]) -> list[dict]:
     """
-    m = event.get("measurements")
-
-    # List shape — return first entry's (parameter, value) as the default;
-    # the caller iterates all entries separately via evaluate_rules().
-    if isinstance(m, list):
-        if not m:
-            return "", None
-        first = m[0]
-        return first.get("parameter", ""), first.get("value")
-
-    # Dict shape (legacy)
-    if isinstance(m, dict):
-        return m.get("metric", m.get("parameter", "")), m.get("value")
-
-    # Flat shape
-    return event.get("metric", ""), event.get("value")
-
-def evaluate_rules(event: dict, rules: list[dict]) -> list[dict]:
-    """Return the list of rules whose conditions are satisfied by *event*.
-
-    Priority: rules are assumed to be sorted by position ASC (get_rules() guarantees
-    this). When two triggered rules target the same actuator, only the one with the
-    lower position value (higher priority) fires — the others are silently dropped.
+    Valuta TUTTE le regole basandosi sulla cache globale di tutti i sensori.
+    
+    Poiché `rules` è ordinato per position (priorità massima = 1), iteriamo dall'alto.
+    La prima regola soddisfatta per un determinato attuatore se lo "aggiudica".
+    Le regole successive per quello stesso attuatore vengono ignorate, garantendo la priority queue.
     """
-    triggered = []
-    sensor_id = event.get("sensor_id", "")
-
-    # Build a list of (metric, value) pairs to evaluate.
-    # Handles flat, dict, and list measurements shapes.
-    m = event.get("measurements")
-    if isinstance(m, list):
-        pairs = [(entry.get("parameter", ""), entry.get("value")) for entry in m]
-    elif isinstance(m, dict):
-        pairs = [(m.get("metric", m.get("parameter", "")), m.get("value"))]
-    else:
-        pairs = [(event.get("metric", ""), event.get("value"))]
-
-    already_triggered = set()  # avoid duplicate rule IDs per event
-
-    for metric, value in pairs:
-        if value is None:
-            continue
-        try:
-            value = float(value)
-        except (TypeError, ValueError):
-            continue
-
-        for rule in rules:
-            if rule["id"] in already_triggered:
-                continue
-            if rule["sensor_id"] != sensor_id:
-                continue
-            if rule["metric"] and rule["metric"] != metric:
-                continue
-            try:
-                if _apply(value, rule["operator"], float(rule["threshold"])):
-                    triggered.append(rule)
-                    already_triggered.add(rule["id"])
-                    print(
-                        f"[RULE #{rule['id']}] {sensor_id}.{metric} {value} "
-                        f"{rule['operator']} {rule['threshold']} → "
-                        f"{rule['actuator_name']} = {rule['actuator_state']}"
-                    )
-            except Exception as e:
-                print(f"[EVALUATOR] Rule {rule['id']} error: {e}")
-
-    # Priority filtering: for each actuator, keep only the highest-priority rule
-    # (lowest position value). Since 'rules' is already sorted by position ASC,
-    # the first encountered winner for each actuator is the correct one.
     winner_per_actuator: dict[str, dict] = {}
-    for rule in triggered:
+
+    for rule in rules:
         actuator = rule["actuator_name"]
-        if actuator not in winner_per_actuator:
-            winner_per_actuator[actuator] = rule
+        
+        # 1. Se una regola con priorità più alta ha già reclamato questo attuatore,
+        # saltiamo la valutazione delle regole meno importanti.
+        if actuator in winner_per_actuator:
+            continue
+
+        sensor_id = rule["sensor_id"]
+        event = sensor_state.get(sensor_id)
+        if not event:
+            continue  # Nessun dato ricevuto finora per questo sensore
+
+        # 2. Estrazione dei valori aggiornati dalla cache
+        m = event.get("measurements")
+        if isinstance(m, list):
+            pairs = [(entry.get("parameter", ""), entry.get("value")) for entry in m]
+        elif isinstance(m, dict):
+            pairs = [(m.get("metric", m.get("parameter", "")), m.get("value"))]
         else:
-            existing_pos = winner_per_actuator[actuator].get("position", 0)
-            this_pos     = rule.get("position", 0)
-            if this_pos < existing_pos:
-                print(
-                    f"[PRIORITY] Rule #{rule['id']} (pos={this_pos}) overrides "
-                    f"Rule #{winner_per_actuator[actuator]['id']} (pos={existing_pos}) "
-                    f"for actuator '{actuator}'"
-                )
-                winner_per_actuator[actuator] = rule
-            else:
-                print(
-                    f"[PRIORITY] Rule #{rule['id']} (pos={this_pos}) suppressed by "
-                    f"Rule #{winner_per_actuator[actuator]['id']} (pos={existing_pos}) "
-                    f"for actuator '{actuator}'"
-                )
+            pairs = [(event.get("metric", ""), event.get("value"))]
+
+        metric = rule["metric"]
+        rule_triggered = False
+
+        # 3. Valutazione della condizione
+        for p_metric, p_value in pairs:
+            if p_value is None:
+                continue
+            if metric and metric != p_metric:
+                continue
+            
+            try:
+                p_value = float(p_value)
+                if _apply(p_value, rule["operator"], float(rule["threshold"])):
+                    rule_triggered = True
+                    print(
+                        f"[PRIORITY EVAL] Rule #{rule['id']} (pos={rule.get('position')}) "
+                        f"triggered: {sensor_id}.{p_metric} {p_value} "
+                        f"{rule['operator']} {rule['threshold']} -> "
+                        f"{actuator} = {rule['actuator_state']}"
+                    )
+                    break
+            except (TypeError, ValueError):
+                pass
+
+        # 4. Assegnazione dell'attuatore al vincitore
+        if rule_triggered:
+            winner_per_actuator[actuator] = rule
 
     return list(winner_per_actuator.values())
