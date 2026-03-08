@@ -29,6 +29,9 @@ def evaluate_rules(sensor_state: dict, rules: list[dict]) -> list[dict]:
     winner_per_actuator: dict[str, dict] = {}
 
     for rule in rules:
+        if rule.get("is_active", 1) == 0:
+            continue
+
         actuator = rule["actuator_name"]
         
         # 1. Se una regola con priorità più alta ha già reclamato questo attuatore,

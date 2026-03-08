@@ -22,20 +22,23 @@ Health:
   GET    /health
 """
 
+import requests
 import threading
 from flask import Flask, jsonify, request, abort
 from flask_cors import CORS
-from db import get_rules, get_rule_by_id, add_rule, delete_rule, update_rule, move_rule
+from db import get_rules, get_rule_by_id, add_rule, delete_rule, update_rule, move_rule, toggle_rule_active
 
 VALID_OPERATORS = {"<", "<=", "=", ">=", ">"}
 VALID_ACTUATORS = {"cooling_fan", "entrance_humidifier", "hall_ventilation", "habitat_heater"}
 VALID_STATES    = {"ON", "OFF"}
 
 
-def create_app(sensor_state: dict, state_lock: threading.Lock,
-               set_actuator_fn, get_actuators_fn) -> Flask:
+def create_app(sensor_state: dict, state_lock: threading.Lock, manual_overrides: set = None, simulator_url: str = "http://localhost:8080"):
     app = Flask(__name__)
     CORS(app)
+    
+    if manual_overrides is None:
+        manual_overrides = set()
 
     # ------------------------------------------------------------------
     # Health
@@ -128,12 +131,21 @@ def create_app(sensor_state: dict, state_lock: threading.Lock,
     # Actuator proxy
     # ------------------------------------------------------------------
 
-    @app.route("/api/actuators", methods=["GET"])
-    def all_actuators():
+    @app.route('/api/actuators', methods=['GET'])
+    def get_all_actuators():
         try:
-            return jsonify(get_actuators_fn())
+            resp = requests.get(f"{simulator_url}/api/actuators", timeout=5)
+            data = resp.json()
+            # Formattiamo la risposta per includere la modalità (auto/manual)
+            for act in data.get("actuators", {}):
+                state = data["actuators"][act]
+                data["actuators"][act] = {
+                    "state": state,
+                    "mode": "manual" if act in manual_overrides else "auto"
+                }
+            return jsonify(data)
         except Exception as e:
-            abort(502, description=f"Could not reach simulator: {e}")
+            abort(502, description=str(e))
 
     @app.route("/api/actuators/<actuator_name>", methods=["GET"])
     def one_actuator(actuator_name):
@@ -148,18 +160,33 @@ def create_app(sensor_state: dict, state_lock: threading.Lock,
         except Exception as e:
             abort(502, description=f"Could not reach simulator: {e}")
 
-    @app.route("/api/actuators/<actuator_name>", methods=["POST"])
-    def set_actuator(actuator_name):
-        if actuator_name not in VALID_ACTUATORS:
-            abort(400, description=f"Unknown actuator '{actuator_name}'")
-        body  = request.get_json(force=True, silent=True) or {}
-        state = body.get("state", "").upper()
-        if state not in VALID_STATES:
-            abort(400, description="'state' must be ON or OFF")
-        ok = set_actuator_fn(actuator_name, state)
-        if not ok:
-            abort(502, description="Simulator did not accept the command")
-        return jsonify({"id": actuator_name, "state": state})
+    @app.route('/api/actuators/<name>/override', methods=['POST'])
+    def override_actuator(name):
+        if name not in VALID_ACTUATORS:
+            abort(400, description="Invalid actuator")
+        
+        body = request.json or {}
+        mode = body.get("mode", "auto")
+        
+        if mode == "manual":
+            manual_overrides.add(name) # Blocca l'Automation Engine per questo attuatore
+            state = body.get("state")
+            if state in VALID_STATES:
+                try:
+                    requests.post(f"{simulator_url}/api/actuators/{name}", json={"state": state}, timeout=5)
+                except:
+                    pass
+        else:
+            manual_overrides.discard(name) # Sblocca l'attuatore, torna in Auto
+            
+        return jsonify({"status": "success", "actuator": name, "mode": mode})
+    
+    @app.route('/api/rules/<int:rule_id>/toggle', methods=['POST'])
+    def api_toggle_rule(rule_id):
+        updated = toggle_rule_active(rule_id)
+        if not updated:
+            abort(404, description="Rule not found")
+        return jsonify(updated)
 
     # ------------------------------------------------------------------
     # Error handlers
