@@ -114,6 +114,23 @@ services:
     depends_on:
       - automation-engine
 
+  pgadmin:
+    restart: unless-stopped
+    image: dpage/pgadmin4
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - mars-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+
 networks:
   mars-net:
     driver: bridge
@@ -121,3 +138,4 @@ networks:
 volumes:
   automation-data:
   postgres-data:
+  pgadmin-data:
