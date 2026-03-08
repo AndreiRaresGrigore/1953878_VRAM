@@ -2,11 +2,12 @@
 api.py — Flask REST API exposed by the automation engine.
 
 Rules CRUD:
-  GET    /api/rules             → list all rules
-  POST   /api/rules             → create a rule
+  GET    /api/rules             → list all rules (ordered by position ASC)
+  POST   /api/rules             → create a rule (appended at lowest priority)
   GET    /api/rules/<id>        → get one rule
   PUT    /api/rules/<id>        → update a rule
   DELETE /api/rules/<id>        → delete a rule
+  POST   /api/rules/<id>/move   → swap with adjacent rule {"direction": "up"|"down"}
 
 Sensor state cache:
   GET    /api/state             → all latest sensor values
@@ -24,7 +25,7 @@ Health:
 import threading
 from flask import Flask, jsonify, request, abort
 from flask_cors import CORS
-from db import get_rules, get_rule_by_id, add_rule, delete_rule, update_rule
+from db import get_rules, get_rule_by_id, add_rule, delete_rule, update_rule, move_rule
 
 VALID_OPERATORS = {"<", "<=", "=", ">=", ">"}
 VALID_ACTUATORS = {"cooling_fan", "entrance_humidifier", "hall_ventilation", "habitat_heater"}
@@ -95,6 +96,16 @@ def create_app(sensor_state: dict, state_lock: threading.Lock,
         if not delete_rule(rule_id):
             abort(404, description="Rule not found")
         return "", 204
+
+    @app.route("/api/rules/<int:rule_id>/move", methods=["POST"])
+    def move_rule_endpoint(rule_id):
+        body      = request.get_json(force=True, silent=True) or {}
+        direction = body.get("direction", "")
+        ok, err   = move_rule(rule_id, direction)
+        if not ok:
+            code = 404 if "not found" in err else 400
+            abort(code, description=err)
+        return jsonify(get_rules()), 200
 
     # ------------------------------------------------------------------
     # Sensor state cache
