@@ -263,12 +263,19 @@ client.on('close', () => { statusBtn.innerText = "Disconnected"; statusBtn.style
 // 5. GESTIONE REGOLE AUTOMAZIONE (TABS E API)
 // ==========================================
 function switchTab(tabName) {
-    document.getElementById('view-dashboard').style.display = tabName === 'dashboard' ? 'block' : 'none';
-    document.getElementById('view-rules').style.display = tabName === 'rules' ? 'block' : 'none';
+    // IMPORTANTE: Ora utilizziamo 'flex' invece di 'block' per mantenere la struttura intatta
+    document.getElementById('view-dashboard').style.display = tabName === 'dashboard' ? 'flex' : 'none';
+    document.getElementById('view-rules').style.display = tabName === 'rules' ? 'flex' : 'none';
+    
     document.getElementById('tab-dashboard').classList.toggle('active', tabName === 'dashboard');
     document.getElementById('tab-rules').classList.toggle('active', tabName === 'rules');
+    
     if (tabName === 'rules') fetchRules();
 }
+
+// Inizializzazione corretta all'avvio
+document.getElementById('view-dashboard').style.display = 'flex';
+document.getElementById('view-rules').style.display = 'none';
 
 function updateMetricOptions() {
     const sensorSelect = document.getElementById('rule-sensor');
@@ -296,6 +303,10 @@ async function fetchRules() {
         const response = await fetch(ENGINE_API_URL);
         if (!response.ok) throw new Error("Errore nel caricamento delle regole");
         currentRules = await response.json();
+        
+        // ORDINA LE REGOLE: dalla più recente (ID maggiore) alla meno recente (ID minore)
+        currentRules.sort((a, b) => b.id - a.id);
+        
         listContainer.innerHTML = ''; 
         
         if (currentRules.length === 0) {
@@ -329,40 +340,6 @@ async function fetchRules() {
     }
 }
 
-// Abilita la modalità modifica inline per una regola specifica
-function enableEditMode(ruleId) {
-    const rule = currentRules.find(r => r.id === ruleId);
-    if (!rule) return;
-
-    const logicDiv = document.getElementById(`rule-logic-${ruleId}`);
-    const actionsDiv = document.getElementById(`rule-actions-${ruleId}`);
-    const metricDisplay = rule.metric ? `.<span class="highlight">${rule.metric}</span>` : '';
-
-    // Costruisce i campi di input pre-popolati
-    logicDiv.innerHTML = `
-        IF <span class="highlight" style="background-color:#e5e7eb;">${rule.sensor_id}</span>${metricDisplay}
-        <select class="edit-select" id="edit-op-${rule.id}">
-            <option value=">" ${rule.operator === '>' ? 'selected' : ''}>></option>
-            <option value=">=" ${rule.operator === '>=' ? 'selected' : ''}>>=</option>
-            <option value="=" ${rule.operator === '=' ? 'selected' : ''}>=</option>
-            <option value="<=" ${rule.operator === '<=' ? 'selected' : ''}><=</option>
-            <option value="<" ${rule.operator === '<' ? 'selected' : ''}><</option>
-        </select>
-        <input type="number" step="0.1" class="edit-input" id="edit-thresh-${rule.id}" value="${rule.threshold}">
-        THEN SET <span class="highlight" style="background-color:#e5e7eb;">${rule.actuator_name}</span> TO
-        <select class="edit-select" id="edit-state-${rule.id}">
-            <option value="ON" ${rule.actuator_state === 'ON' ? 'selected' : ''}>ON</option>
-            <option value="OFF" ${rule.actuator_state === 'OFF' ? 'selected' : ''}>OFF</option>
-        </select>
-    `;
-
-    // Cambia i bottoni in Salva/Annulla
-    actionsDiv.innerHTML = `
-        <button class="btn btn-green" onclick="saveRuleChanges(${rule.id})">💾 Save</button>
-        <button class="btn btn-blue-outline" onclick="fetchRules()" style="border-color: #999; color: #666;">Cancel</button>
-    `;
-}
-
 // Invia le modifiche all'API tramite PUT
 async function saveRuleChanges(ruleId) {
     const updatedRule = {
@@ -390,10 +367,10 @@ async function saveRuleChanges(ruleId) {
 }
 
 // ==========================================
-// CREAZIONE NUOVA REGOLA (POST)
+// CREAZIONE / SOVRASCRITTURA NUOVA REGOLA
 // ==========================================
 document.getElementById('add-rule-form').addEventListener('submit', async (e) => {
-    e.preventDefault(); // CRUCIALE: Evita che la pagina si ricarichi!
+    e.preventDefault(); // Evita il ricaricamento della pagina
 
     const newRule = {
         sensor_id: document.getElementById('rule-sensor').value,
@@ -405,6 +382,43 @@ document.getElementById('add-rule-form').addEventListener('submit', async (e) =>
         description: 'Created from Frontend'
     };
 
+    // 1. Controllo Collisioni (Match esatto di tutto tranne la soglia)
+    const conflictingRule = currentRules.find(r => 
+        r.sensor_id === newRule.sensor_id &&
+        r.metric === newRule.metric &&
+        r.operator === newRule.operator &&
+        r.actuator_name === newRule.actuator_name &&
+        r.actuator_state === newRule.actuator_state
+    );
+
+    // 2. Se troviamo un conflitto, avviamo il flow di sovrascrittura
+    if (conflictingRule) {
+        const confirmOverwrite = confirm(
+            `⚠️ Attenzione: Esiste già una regola identica nel database (Soglia attuale: ${conflictingRule.threshold}).\n\nVuoi sovrascriverla inserendo la nuova regola con soglia ${newRule.threshold}?`
+        );
+
+        if (!confirmOverwrite) {
+            return; // Se l'utente clicca 'Annulla', blocchiamo il processo
+        }
+
+        // 3. Se l'utente accetta, eliminiamo la regola esistente tramite DELETE
+        try {
+            const deleteResponse = await fetch(`${ENGINE_API_URL}/${conflictingRule.id}`, { 
+                method: 'DELETE' 
+            });
+            if (!deleteResponse.ok) {
+                alert("Errore di comunicazione: Impossibile eliminare la vecchia regola.");
+                return; // Interrompiamo se non riusciamo ad eliminare
+            }
+            console.log(`[Regola ${conflictingRule.id} eliminata per sovrascrittura]`);
+        } catch (error) {
+            console.error("Errore durante l'eliminazione:", error);
+            alert('Impossibile raggiungere il server.');
+            return;
+        }
+    }
+
+    // 4. Se non c'erano conflitti (oppure la vecchia è stata eliminata), aggiungiamo la nuova tramite POST
     try {
         const response = await fetch(ENGINE_API_URL, {
             method: 'POST', 
@@ -413,26 +427,15 @@ document.getElementById('add-rule-form').addEventListener('submit', async (e) =>
         });
         
         if (response.ok) { 
-            // Svuota solo il campo numerico per comodità e ricarica la lista
+            // Reset dell'input e ricaricamento regole
             document.getElementById('rule-threshold').value = ''; 
             fetchRules(); 
         } else {
-            // Estrae l'errore dal backend (definito in api.py) per aiutarti nel debug
             const errorData = await response.json();
             alert(`Error adding rule: ${errorData.error}`);
         }
     } catch (error) { 
         console.error(error);
-        alert('Cannot reach the Automation Engine.'); 
+        alert('Cannot reach the Automation Engine per aggiungere la regola.'); 
     }
 });
-
-async function deleteRule(ruleId) {
-    if (!confirm('Are you sure you want to delete this automation rule?')) return;
-    try {
-        const response = await fetch(`${ENGINE_API_URL}/${ruleId}`, { method: 'DELETE' });
-        if (response.ok) fetchRules(); 
-    } catch (error) {
-        console.error(error);
-    }
-}
