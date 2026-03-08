@@ -61,10 +61,18 @@
                     <div class="last-updated" id="ph-time">Wait...</div>
                 </div>
 
-                <div class="sensor-card neo-box col-span-2">
-                    <div class="sensor-header"><div><strong>💧 Water Tank</strong></div><div class="status-container"><span class="status-badge" id="water-badge"></span><span class="status-led" id="water-led"></span></div></div>
-                    <div class="grid-2"><div><div class="multi-value-label">Capacity</div><div class="sensor-value" id="water-perc-val">--</div></div><div><div class="multi-value-label">Volume</div><div class="sensor-value" id="water-liters-val">--</div></div></div>
-                    <div class="last-updated" id="water-time">Wait...</div>
+                <div class="sensor-card neo-box col-span-2" id="water-tank-card">
+                    <div class="water-wave" id="water-level-bg"></div>
+                    
+                    <div class="sensor-header" style="position: relative; z-index: 1;">
+                        <div><strong>💧 Water Tank</strong></div>
+                        <div class="status-container"><span class="status-badge" id="water-badge"></span><span class="status-led" id="water-led"></span></div>
+                    </div>
+                    <div class="grid-2" style="position: relative; z-index: 1;">
+                        <div><div class="multi-value-label">Capacity</div><div class="sensor-value" id="water-perc-val">--</div></div>
+                        <div><div class="multi-value-label">Volume</div><div class="sensor-value" id="water-liters-val">--</div></div>
+                    </div>
+                    <div class="last-updated" id="water-time" style="position: relative; z-index: 1;">Wait...</div>
                 </div>
 
                 <div class="sensor-card neo-box col-span-2">

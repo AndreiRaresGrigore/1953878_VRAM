@@ -163,3 +163,119 @@ body {
         justify-content: center;
     }
 }
+
+#water-tank-card {
+    position: relative;
+    overflow: hidden;
+    background-color: white; 
+}
+
+.water-wave {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0%;
+    background-color: var(--color-blue);
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" opacity="0.15"><filter id="a"><feTurbulence type="fractalNoise" baseFrequency="0.1" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23a)"/></svg>');
+    background-size: cover;
+    transition: height 1s ease-in-out;
+    z-index: 0;
+}
+
+/* Micro-oscillazioni interne (Corpo dell'acqua) */
+.water-wave::before {
+    content: '';
+    position: absolute;
+    width: 120%;
+    height: 120%;
+    top: -10%;
+    left: -10%;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.15"><filter id="a"><feTurbulence type="turbulence" baseFrequency="0.05" numOctaves="2"/></filter><rect width="100%" height="100%" filter="url(%23a)"/></svg>');
+    background-size: 50% 50%;
+    animation: wave-wobble 12s linear infinite; 
+}
+
+/* NUOVO: Increspature evidenti sulla CIMA del recipiente */
+.water-wave::after {
+    content: '';
+    position: absolute;
+    top: -12px; /* Si posiziona esattamente a cavallo del bordo superiore */
+    left: 0;
+    width: 100%;
+    height: 14px;
+    /* Due onde SVG morbide: una semi-trasparente (sfondo) e una solida (primo piano) */
+    background-image: 
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0 10 Q 25 0 50 10 T 100 10 L 100 20 L 0 20 Z" fill="%2393C5FD" opacity="0.5"/></svg>'),
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0 15 Q 25 5 50 15 T 100 15 L 100 20 L 0 20 Z" fill="%2393C5FD"/></svg>');
+    background-size: 130px 100%, 90px 100%; /* Larghezze sfalsate per non farle sovrapporre mai in modo identico */
+    background-position: 0 0, 0 0;
+    background-repeat: repeat-x;
+    animation: surface-wave 4s linear infinite;
+}
+
+@keyframes wave-wobble {
+    0% { transform: translate(0, 0); }
+    100% { transform: translate(-25px, -25px); }
+}
+
+/* Animazione di scorrimento orizzontale della cima */
+@keyframes surface-wave {
+    0% { background-position: 0 0, 0 0; }
+    100% { background-position: -130px 0, -90px 0; }
+}
+
+/* ==========================================
+   BOTTONI POST-BRUTALIST (MOVE & EDIT)
+   ========================================== */
+.btn-move, .btn-blue-outline {
+    background-color: white;
+    border: var(--brutal-border);
+    box-shadow: 2px 2px 0px 0px var(--shadow-color);
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.9rem;
+    font-weight: bold;
+    transition: all 0.1s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Colore specifico per Edit */
+.btn-blue-outline {
+    background-color: var(--color-blue);
+    color: var(--border-color);
+}
+
+/* Hover: cambia il colore di sfondo */
+.btn-move:hover:not(:disabled) {
+    background-color: var(--color-purple);
+}
+.btn-blue-outline:hover {
+    background-color: #60a5fa; /* Un blu leggermente più scuro */
+}
+
+/* Click: effetto schiacciamento brutalista */
+.btn-move:active:not(:disabled), 
+.btn-blue-outline:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0px 0px var(--shadow-color);
+}
+
+/* Stato disabilitato: più "piatto" e grigio */
+.btn-move:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background-color: #f3f4f6;
+    box-shadow: none;
+    transform: none;
+}
+
+/* Spaziature nel contenitore delle azioni */
+.rule-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}

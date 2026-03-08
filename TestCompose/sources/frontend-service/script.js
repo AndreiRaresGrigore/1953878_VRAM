@@ -164,9 +164,21 @@ client.on('message', (topic, message) => {
             }
             case "water_tank_level": {
                 const perc = getMeasure("fill_percentage"); const lit = getMeasure("level_liters");
-                if (perc) document.getElementById('water-perc-val').innerText = `${perc.value} ${perc.unit}`;
+                if (perc) {
+                    document.getElementById('water-perc-val').innerText = `${perc.value} ${perc.unit}`;
+                    
+                    // --- NUOVO: Aggiorna il livello dell'onda! ---
+                    const waveBg = document.getElementById('water-level-bg');
+                    if (waveBg) {
+                        // Assicuriamoci che il valore resti tra 0 e 100
+                        let heightVal = Math.max(0, Math.min(100, parseFloat(perc.value)));
+                        // Aggiungiamo un +5% visivo altrimenti al 10% l'onda è troppo bassa
+                        waveBg.style.height = `${heightVal}%`;
+                    }
+                }
                 if (lit) document.getElementById('water-liters-val').innerText = `${lit.value} ${lit.unit}`;
-                updateStatusDisplay('water-led', 'water-badge', payload.status); break;
+                updateStatusDisplay('water-led', 'water-badge', payload.status); 
+                break;
             }
             case "co2_hall": {
                 const m = getMeasure("co2_ppm");
@@ -302,10 +314,11 @@ async function fetchRules() {
     try {
         const response = await fetch(ENGINE_API_URL);
         if (!response.ok) throw new Error("Errore nel caricamento delle regole");
+        
         currentRules = await response.json();
         
-        // ORDINA LE REGOLE: dalla più recente (ID maggiore) alla meno recente (ID minore)
-        currentRules.sort((a, b) => b.id - a.id);
+        // RIMOSSO IL VECCHIO ORDINAMENTO currentRules.sort(...)
+        // Ora l'array arriva dal backend già ordinato per Priority (position ASC)
         
         listContainer.innerHTML = ''; 
         
@@ -314,29 +327,61 @@ async function fetchRules() {
             return;
         }
         
-        currentRules.forEach(rule => {
+        currentRules.forEach((rule, index) => {
             const ruleElement = document.createElement('div');
             ruleElement.className = 'rule-card';
             ruleElement.id = `rule-card-${rule.id}`;
             const metricDisplay = rule.metric ? `.<span class="highlight">${rule.metric}</span>` : '';
             
-            // Modalità visualizzazione standard
+            // Verifica se è il primo o l'ultimo elemento per disabilitare i tasti
+            const isFirst = index === 0;
+            const isLast = index === currentRules.length - 1;
+            
+            // Modalità visualizzazione standard con Indicatore di Priorità e Frecce
             ruleElement.innerHTML = `
-                <div class="rule-logic" id="rule-logic-${rule.id}">
+                <div style="margin-right: 1rem; text-align: center; min-width: 45px;">
+                    <div style="font-size: 0.65rem; color: #666; font-weight: bold;">Priority</div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: var(--color-purple);">#${rule.position}</div>
+                </div>
+                <div class="rule-logic" id="rule-logic-${rule.id}" style="flex: 1;">
                     IF <span class="highlight">${rule.sensor_id}</span>${metricDisplay} 
                     ${rule.operator} <span class="highlight">${rule.threshold}</span> 
                     THEN SET <span class="highlight">${rule.actuator_name}</span> 
                     TO <span class="highlight">${rule.actuator_state}</span>
                 </div>
                 <div class="rule-actions" id="rule-actions-${rule.id}">
-                    <button class="btn btn-blue-outline" onclick="enableEditMode(${rule.id})">✏️ Edit</button>
-                    <button class="btn btn-red" onclick="deleteRule(${rule.id})">🗑️ Delete</button>
+                    <button class="btn-move" onclick="moveRule(${rule.id}, 'up')" ${isFirst ? 'disabled' : ''} title="Move Up">⬆️</button>
+                    <button class="btn-move" onclick="moveRule(${rule.id}, 'down')" ${isLast ? 'disabled' : ''} title="Move Down">⬇️</button>
+                    <button class="btn-blue-outline" onclick="enableEditMode(${rule.id})">✏️ Edit</button>
+                    <button class="btn-red" onclick="deleteRule(${rule.id})">🗑️ Delete</button>
                 </div>
             `;
             listContainer.appendChild(ruleElement);
         });
     } catch (error) { 
         listContainer.innerHTML = '<p style="color: red;">⚠️ Cannot connect to Automation Engine API.</p>'; 
+    }
+}
+
+// NUOVA FUNZIONE: Contatta la POST /api/rules/<id>/move
+async function moveRule(ruleId, direction) {
+    try {
+        const response = await fetch(`${ENGINE_API_URL}/${ruleId}/move`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ direction: direction })
+        });
+        
+        if (response.ok) {
+            // L'API risponde con le regole aggiornate, ricarichiamo la UI
+            fetchRules();
+        } else {
+            const err = await response.json();
+            alert(`Errore durante lo spostamento: ${err.error}`);
+        }
+    } catch (error) {
+        console.error("Move error:", error);
+        alert("Impossibile raggiungere il server per spostare la regola.");
     }
 }
 
