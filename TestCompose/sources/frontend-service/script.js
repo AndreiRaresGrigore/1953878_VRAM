@@ -389,6 +389,44 @@ async function saveRuleChanges(ruleId) {
     }
 }
 
+// ==========================================
+// CREAZIONE NUOVA REGOLA (POST)
+// ==========================================
+document.getElementById('add-rule-form').addEventListener('submit', async (e) => {
+    e.preventDefault(); // CRUCIALE: Evita che la pagina si ricarichi!
+
+    const newRule = {
+        sensor_id: document.getElementById('rule-sensor').value,
+        metric: document.getElementById('rule-metric').value,
+        operator: document.getElementById('rule-operator').value,
+        threshold: parseFloat(document.getElementById('rule-threshold').value),
+        actuator_name: document.getElementById('rule-actuator').value,
+        actuator_state: document.getElementById('rule-state').value,
+        description: 'Created from Frontend'
+    };
+
+    try {
+        const response = await fetch(ENGINE_API_URL, {
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(newRule)
+        });
+        
+        if (response.ok) { 
+            // Svuota solo il campo numerico per comodità e ricarica la lista
+            document.getElementById('rule-threshold').value = ''; 
+            fetchRules(); 
+        } else {
+            // Estrae l'errore dal backend (definito in api.py) per aiutarti nel debug
+            const errorData = await response.json();
+            alert(`Error adding rule: ${errorData.error}`);
+        }
+    } catch (error) { 
+        console.error(error);
+        alert('Cannot reach the Automation Engine.'); 
+    }
+});
+
 async function deleteRule(ruleId) {
     if (!confirm('Are you sure you want to delete this automation rule?')) return;
     try {
