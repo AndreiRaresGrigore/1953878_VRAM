@@ -32,6 +32,24 @@ services:
       timeout: 5s
       retries: 5
 
+
+  ingestion-service:
+    restart: unless-stopped
+    build: ./sources/ingestion-service
+    volumes:
+      - ./templates/ingestion-service/config.yaml:/app/config.yaml
+      - ./sources/ingestion-service:/app
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      simulator:
+        condition: service_healthy
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    networks:
+      - mars-net
+
   automation-engine:
     restart: unless-stopped
     build: ./sources/automation-engine
