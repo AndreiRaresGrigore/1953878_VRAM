@@ -103,7 +103,7 @@ function updateActuatorDisplay(ledId, state) {
     if (!led) return;
     led.classList.remove('led-green', 'led-red');
     if (state === 'ON') led.classList.add('led-green');
-    else if (state === 'OFF') led.classList.add('led-red'); 
+    else if (state === 'OFF') led.classList.add('led-red');
 }
 
 // ==========================================
@@ -141,7 +141,7 @@ window.openSensorModal = function(sensorId, title) {
     document.getElementById('sensor-modal').style.display = 'flex';
 
     const container = document.getElementById('modal-charts-container');
-    
+
     // Distruggi vecchi grafici e svuota il contenitore
     modalCharts.forEach(obj => obj.chart.destroy());
     modalCharts = [];
@@ -162,9 +162,9 @@ window.openSensorModal = function(sensorId, title) {
 
     // Definiamo i sensori che DEVONO raggruppare i dati su un singolo grafico
     const keepSingleChart = [
-        'air_quality_pm25', 
-        'mars/telemetry/solar_array', 
-        'mars/telemetry/power_bus', 
+        'air_quality_pm25',
+        'mars/telemetry/solar_array',
+        'mars/telemetry/power_bus',
         'mars/telemetry/power_consumption'
     ].includes(sensorId);
 
@@ -174,9 +174,9 @@ window.openSensorModal = function(sensorId, title) {
         // == MODALITÀ SINGOLO GRAFICO ==
         const wrapper = document.createElement('div');
         wrapper.style.position = "relative";
-        wrapper.style.height = "350px"; 
+        wrapper.style.height = "350px";
         wrapper.style.flexShrink = "0";
-        
+
         const canvas = document.createElement('canvas');
         wrapper.appendChild(canvas);
         container.appendChild(wrapper);
@@ -187,7 +187,7 @@ window.openSensorModal = function(sensorId, title) {
                 labels: [...h.labels],
                 datasets: metrics.map((metric, i) => ({
                     // -> MODIFICA APPLICATA QUI:
-                    label: metricLabelsMap[metric] || metric, 
+                    label: metricLabelsMap[metric] || metric,
                     data: [...h.metrics[metric]],
                     borderColor: METRIC_COLORS[i % METRIC_COLORS.length].border,
                     backgroundColor: METRIC_COLORS[i % METRIC_COLORS.length].bg,
@@ -201,15 +201,15 @@ window.openSensorModal = function(sensorId, title) {
                 plugins: { legend: { labels: { font: { family: 'Space Grotesk', size: 12 }, usePointStyle: true } } }
             }
         });
-        modalCharts.push({ chart, metrics }); 
+        modalCharts.push({ chart, metrics });
     } else {
         // == MODALITÀ GRAFICI SEPARATI ==
         metrics.forEach((metric, i) => {
             const wrapper = document.createElement('div');
             wrapper.style.position = "relative";
-            wrapper.style.height = "250px"; 
+            wrapper.style.height = "250px";
             wrapper.style.flexShrink = "0";
-            
+
             const canvas = document.createElement('canvas');
             wrapper.appendChild(canvas);
             container.appendChild(wrapper);
@@ -220,7 +220,7 @@ window.openSensorModal = function(sensorId, title) {
                     labels: [...h.labels],
                     datasets: [{
                         // -> MODIFICA APPLICATA QUI:
-                        label: metricLabelsMap[metric] || metric, 
+                        label: metricLabelsMap[metric] || metric,
                         data: [...h.metrics[metric]],
                         borderColor: METRIC_COLORS[i % METRIC_COLORS.length].border,
                         backgroundColor: METRIC_COLORS[i % METRIC_COLORS.length].bg,
@@ -234,7 +234,7 @@ window.openSensorModal = function(sensorId, title) {
                     plugins: { legend: { labels: { font: { family: 'Space Grotesk', size: 12 }, usePointStyle: true } } }
                 }
             });
-            modalCharts.push({ chart, metrics: [metric] }); 
+            modalCharts.push({ chart, metrics: [metric] });
         });
     }
 };
@@ -243,12 +243,12 @@ function refreshModalChart() {
     if (modalCharts.length === 0 || !modalSensorId) return;
     const h = sensorHistory[modalSensorId];
     if (!h) return;
-    
+
     // Aggiorna dinamicamente tutti i grafici aperti
     modalCharts.forEach(obj => {
         obj.chart.data.labels = [...h.labels];
-        obj.metrics.forEach((metric, idx) => { 
-            if (obj.chart.data.datasets[idx]) obj.chart.data.datasets[idx].data = [...h.metrics[metric]]; 
+        obj.metrics.forEach((metric, idx) => {
+            if (obj.chart.data.datasets[idx]) obj.chart.data.datasets[idx].data = [...h.metrics[metric]];
         });
         obj.chart.update('none');
     });
@@ -283,39 +283,39 @@ async function fetchActuators() {
         const overrideUrl = ENGINE_API_URL.replace('/rules', '/actuators');
         const response = await fetch(overrideUrl);
         if (!response.ok) return;
-        
+
         const data = await response.json();
-        
+
         for (const [actuatorName, info] of Object.entries(data.actuators)) {
             const timeId = timeElementMap[actuatorName];
             if (timeId) { lastUpdatedTimes[timeId] = new Date(); updateTimeDisplay(timeId); }
-            
+
             const prefix = actuatorPrefixMap[actuatorName];
             const led = document.getElementById(`${prefix}-led`);
             const modeBtn = document.getElementById(`${prefix}-mode`);
             const stateBtn = document.getElementById(`${prefix}-state`);
-            
+
             if (!led || !modeBtn || !stateBtn) continue;
 
             // Aggiorna il LED
             led.classList.remove('led-green', 'led-red');
             if (info.state === 'ON') led.classList.add('led-green');
             else if (info.state === 'OFF') led.classList.add('led-red');
-            
+
             // Aggiorna Pulsante MODE (Auto/Manual)
             modeBtn.innerText = info.mode.toUpperCase();
             modeBtn.className = `btn-ctrl btn-mode ${info.mode}`;
-            
+
             // Aggiorna Pulsante STATO (ON/OFF)
             stateBtn.innerText = info.state;
             stateBtn.className = `btn-ctrl btn-state ${info.state.toLowerCase()}`;
-            
+
             // Disabilita il pulsante di stato se l'engine è in controllo (AUTO)
             stateBtn.disabled = (info.mode === 'auto');
         }
     } catch (error) {}
 }
-fetchActuators(); 
+fetchActuators();
 setInterval(fetchActuators, 5000);
 
 // Cambia da AUTO a MANUAL e viceversa
@@ -323,7 +323,7 @@ window.toggleMode = async function(actuatorName) {
     const prefix = actuatorPrefixMap[actuatorName];
     const modeBtn = document.getElementById(`${prefix}-mode`);
     const stateBtn = document.getElementById(`${prefix}-state`);
-    
+
     const newMode = modeBtn.innerText === 'AUTO' ? 'manual' : 'auto';
     const currentState = stateBtn.innerText; // Preserva lo stato attuale quando si passa in manuale
 
@@ -368,9 +368,9 @@ client.on('connect', () => { statusBtn.innerText = "Connected (Live)"; statusBtn
 client.on('message', (topic, message) => {
     try {
         const payload = JSON.parse(message.toString());
-        
+
         if (topic === 'mars/automation/alerts') {
-            if (payload.type === 'RULE_TRIGGER') showToast(`🤖 AUTOMATION: ${payload.text}`);
+            if (payload.type === 'RULE_TRIGGER') showToast(`AUTOMATION: ${payload.text}`);
             return;
         }
 
@@ -381,7 +381,7 @@ client.on('message', (topic, message) => {
         const timeId = timeElementMap[deviceId];
         if (timeId) {
             lastUpdatedTimes[timeId] = eventTime ? new Date(eventTime) : new Date();
-            updateTimeDisplay(timeId); 
+            updateTimeDisplay(timeId);
         }
 
         const getMeasure = (pName) => payload.measurements ? payload.measurements.find(m => m.parameter === pName || m.metric === pName) : null;
@@ -496,11 +496,11 @@ window.switchTab = function(tabName) {
     document.getElementById('view-dashboard').style.display = tabName === 'dashboard' ? 'flex' : 'none';
     document.getElementById('view-energy').style.display = tabName === 'energy' ? 'flex' : 'none';
     document.getElementById('view-rules').style.display = tabName === 'rules' ? 'flex' : 'none';
-    
+
     document.getElementById('tab-dashboard').classList.toggle('active', tabName === 'dashboard');
     document.getElementById('tab-energy').classList.toggle('active', tabName === 'energy');
     document.getElementById('tab-rules').classList.toggle('active', tabName === 'rules');
-    
+
     if (tabName === 'rules') fetchRules();
 };
 
@@ -508,8 +508,8 @@ window.updateMetricOptions = function() {
     const sensorSelect = document.getElementById('rule-sensor');
     const metricSelect = document.getElementById('rule-metric');
     const selectedSensor = sensorSelect.value;
-    
-    metricSelect.innerHTML = ''; 
+
+    metricSelect.innerHTML = '';
     if (sensorMetricsMap[selectedSensor]) {
         sensorMetricsMap[selectedSensor].forEach(metric => {
             const opt = document.createElement('option'); opt.value = metric; opt.innerText = metric; metricSelect.appendChild(opt);
@@ -528,48 +528,48 @@ window.fetchRules = async function() {
         if (!response.ok) throw new Error("Errore");
         currentRules = await response.json();
         currentRules.sort((a, b) => a.position - b.position);
-        
-        listContainer.innerHTML = ''; 
+
+        listContainer.innerHTML = '';
         if (currentRules.length === 0) { listContainer.innerHTML = '<p style="color: #666;">No active rules found. Create one above.</p>'; return; }
-        
+
         currentRules.forEach((rule, index) => {
-            const ruleElement = document.createElement('div'); 
-            
+            const ruleElement = document.createElement('div');
+
             // Applica la classe 'suspended' se la regola è disattivata (0)
             const isActive = rule.is_active !== 0;
             ruleElement.className = isActive ? 'rule-card' : 'rule-card suspended';
             ruleElement.id = `rule-card-${rule.id}`;
-            
+
             const metricDisplay = rule.metric ? `.<span class="highlight">${rule.metric}</span>` : '';
             const isFirst = index === 0; const isLast = index === currentRules.length - 1;
-            
+
             // Scegli il tasto corretto da mostrare
-            const toggleBtnHtml = isActive 
-                ? `<button class="btn-toggle pause" onclick="toggleRule(${rule.id})" title="Suspend Rule">⏸️ Suspend</button>`
-                : `<button class="btn-toggle play" onclick="toggleRule(${rule.id})" title="Enable Rule">▶️ Resume</button>`;
-            
+            const toggleBtnHtml = isActive
+                ? `<button class="btn-toggle pause" onclick="toggleRule(${rule.id})" title="Suspend Rule">Suspend</button>`
+                : `<button class="btn-toggle play" onclick="toggleRule(${rule.id})" title="Enable Rule">Resume</button>`;
+
             ruleElement.innerHTML = `
                 <div style="margin-right: 1rem; text-align: center; min-width: 45px;">
                     <div style="font-size: 0.65rem; color: #666; font-weight: bold;">Priority</div>
                     <div style="font-size: 1.1rem; font-weight: 700; color: var(--color-purple);">#${index + 1}</div>
                 </div>
                 <div class="rule-logic" id="rule-logic-${rule.id}" style="flex: 1;">
-                    IF <span class="highlight">${rule.sensor_id}</span>${metricDisplay} 
-                    ${rule.operator} <span class="highlight">${rule.threshold}</span> 
-                    THEN SET <span class="highlight">${rule.actuator_name}</span> 
+                    IF <span class="highlight">${rule.sensor_id}</span>${metricDisplay}
+                    ${rule.operator} <span class="highlight">${rule.threshold}</span>
+                    THEN SET <span class="highlight">${rule.actuator_name}</span>
                     TO <span class="highlight">${rule.actuator_state}</span>
                 </div>
                 <div class="rule-actions" id="rule-actions-${rule.id}">
                     ${toggleBtnHtml}
-                    <button class="btn-move" onclick="moveRule(${rule.id}, 'up')" ${isFirst ? 'disabled' : ''} title="Move Up">⬆️</button>
-                    <button class="btn-move" onclick="moveRule(${rule.id}, 'down')" ${isLast ? 'disabled' : ''} title="Move Down">⬇️</button>
-                    <button class="btn-blue-outline" onclick="enableEditMode(${rule.id})">✏️ Edit</button>
-                    <button class="btn-red" onclick="deleteRule(${rule.id})">🗑️ Delete</button>
+                    <button class="btn-move" onclick="moveRule(${rule.id}, 'up')" ${isFirst ? 'disabled' : ''} title="Move Up">⬆</button>
+                    <button class="btn-move" onclick="moveRule(${rule.id}, 'down')" ${isLast ? 'disabled' : ''} title="Move Down">⬇</button>
+                    <button class="btn-blue-outline" onclick="enableEditMode(${rule.id})">Edit</button>
+                    <button class="btn-red" onclick="deleteRule(${rule.id})">Delete</button>
                 </div>
             `;
             listContainer.appendChild(ruleElement);
         });
-    } catch (error) { listContainer.innerHTML = '<p style="color: red;">⚠️ Cannot connect to Automation Engine API.</p>'; }
+    } catch (error) { listContainer.innerHTML = '<p style="color: red;">Cannot connect to Automation Engine API.</p>'; }
 };
 
 // Funzione che contatta l'API per sospendere/riattivare
@@ -606,7 +606,7 @@ window.enableEditMode = function(ruleId) {
         </select>
     `;
     actionsDiv.innerHTML = `
-        <button class="btn-move" onclick="saveRuleChanges(${rule.id})" style="background-color: var(--color-green); border-color: var(--border-color); color: black;">💾 Save</button>
+        <button class="btn-move" onclick="saveRuleChanges(${rule.id})" style="background-color: var(--color-green); border-color: var(--border-color); color: black;">Save</button>
         <button class="btn-blue-outline" onclick="fetchRules()">Cancel</button>
     `;
 };
@@ -633,7 +633,7 @@ window.saveRuleChanges = async function(ruleId) {
 };
 
 document.getElementById('add-rule-form').addEventListener('submit', async (e) => {
-    e.preventDefault(); 
+    e.preventDefault();
     const newRule = {
         sensor_id: document.getElementById('rule-sensor').value, metric: document.getElementById('rule-metric').value,
         operator: document.getElementById('rule-operator').value, threshold: parseFloat(document.getElementById('rule-threshold').value),
@@ -662,7 +662,7 @@ window.deleteRule = async function(ruleId) {
     if (!confirm('Are you sure you want to delete this automation rule?')) return;
     try {
         const response = await fetch(`${ENGINE_API_URL}/${ruleId}`, { method: 'DELETE' });
-        if (response.ok) fetchRules(); 
+        if (response.ok) fetchRules();
     } catch (error) { console.error(error); }
 };
 
@@ -688,8 +688,8 @@ const energyChart = new Chart(document.getElementById('energy-chart').getContext
     data: {
         labels: energyLabels,
         datasets: [
-            { label: '☀️ Solar Production (kW)', data: solarPowerData, borderColor: '#FBBF24', backgroundColor: 'rgba(251, 191, 36, 0.12)', borderWidth: 2.5, pointRadius: 2, tension: 0.35, spanGaps: false, fill: true },
-            { label: '⚡ Power Consumption (kW)', data: consumptionPowerData, borderColor: '#F87171', backgroundColor: 'rgba(248, 113, 113, 0.12)', borderWidth: 2.5, pointRadius: 2, tension: 0.35, spanGaps: false, fill: true }
+            { label: 'Solar Production (kW)', data: solarPowerData, borderColor: '#FBBF24', backgroundColor: 'rgba(251, 191, 36, 0.12)', borderWidth: 2.5, pointRadius: 2, tension: 0.35, spanGaps: false, fill: true },
+            { label: 'Power Consumption (kW)', data: consumptionPowerData, borderColor: '#F87171', backgroundColor: 'rgba(248, 113, 113, 0.12)', borderWidth: 2.5, pointRadius: 2, tension: 0.35, spanGaps: false, fill: true }
         ]
     },
     options: {
@@ -728,8 +728,8 @@ function _pushEnergyPoint() {
     const badge = document.getElementById('energy-status-badge');
     const balance = latestSolarPower - latestConsumptionPower;
     badge.classList.remove('energy-surplus', 'energy-deficit', 'energy-waiting');
-    if (balance >= 0) { badge.classList.add('energy-surplus'); badge.innerText = `✅ SURPLUS  +${balance.toFixed(2)} kW`; }
-    else { badge.classList.add('energy-deficit'); badge.innerText = `⚠️ DEFICIT  ${balance.toFixed(2)} kW`; }
+    if (balance >= 0) { badge.classList.add('energy-surplus'); badge.innerText = `SURPLUS  +${balance.toFixed(2)} kW`; }
+    else { badge.classList.add('energy-deficit'); badge.innerText = `DEFICIT  ${balance.toFixed(2)} kW`; }
 }
 
 // ==========================================

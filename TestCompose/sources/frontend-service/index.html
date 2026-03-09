@@ -12,13 +12,13 @@
     <header class="top-header">
         <div class="header-left">
             <div class="logo-box neo-box">
-                <div class="logo">🚀 Mars IoT Dashboard</div>
+                <div class="logo">Mars Sensors Dashboard</div>
                 <p class="subtitle">Real-time telemetry and automation management</p>
             </div>
             <div class="tabs-container">
-                <button class="tab-btn btn-blue active" id="tab-dashboard" onclick="switchTab('dashboard')">📊 Live Dashboard</button>
-                <button class="tab-btn btn-green" id="tab-energy" onclick="switchTab('energy')">⚡ Energy Chart</button>
-                <button class="tab-btn btn-yellow" id="tab-rules" onclick="switchTab('rules')">⚙️ Automation Rules</button>
+                <button class="tab-btn btn-blue active" id="tab-dashboard" onclick="switchTab('dashboard')">Live Dashboard</button>
+                <button class="tab-btn btn-green" id="tab-energy" onclick="switchTab('energy')">Energy Chart</button>
+                <button class="tab-btn btn-yellow" id="tab-rules" onclick="switchTab('rules')">Automation Rules</button>
             </div>
         </div>
 
@@ -26,7 +26,7 @@
             <a href="#" class="btn-purple" id="connection-status">Simulator Disconnected</a>
             <div class="actuators-bar">
                 <div class="act-mini neo-box">
-                    <div class="act-mini-top"><strong>🌬️ Fan</strong><span class="status-led" id="fan-led"></span></div>
+                    <div class="act-mini-top"><strong>Fan</strong><span class="status-led" id="fan-led"></span></div>
                     <div class="act-controls">
                         <button id="fan-mode" class="btn-ctrl btn-mode auto" onclick="toggleMode('cooling_fan')">AUTO</button>
                         <button id="fan-state" class="btn-ctrl btn-state" onclick="toggleState('cooling_fan')" disabled>--</button>
@@ -34,7 +34,7 @@
                     <div class="last-updated" id="fan-time">Wait...</div>
                 </div>
                 <div class="act-mini neo-box">
-                    <div class="act-mini-top"><strong>💧 Humidifier</strong><span class="status-led" id="humidifier-led"></span></div>
+                    <div class="act-mini-top"><strong>Humidifier</strong><span class="status-led" id="humidifier-led"></span></div>
                     <div class="act-controls">
                         <button id="humidifier-mode" class="btn-ctrl btn-mode auto" onclick="toggleMode('entrance_humidifier')">AUTO</button>
                         <button id="humidifier-state" class="btn-ctrl btn-state" onclick="toggleState('entrance_humidifier')" disabled>--</button>
@@ -42,7 +42,7 @@
                     <div class="last-updated" id="humidifier-time">Wait...</div>
                 </div>
                 <div class="act-mini neo-box">
-                    <div class="act-mini-top"><strong>🌪️ Vent</strong><span class="status-led" id="vent-led"></span></div>
+                    <div class="act-mini-top"><strong>Vent</strong><span class="status-led" id="vent-led"></span></div>
                     <div class="act-controls">
                         <button id="vent-mode" class="btn-ctrl btn-mode auto" onclick="toggleMode('hall_ventilation')">AUTO</button>
                         <button id="vent-state" class="btn-ctrl btn-state" onclick="toggleState('hall_ventilation')" disabled>--</button>
@@ -50,7 +50,7 @@
                     <div class="last-updated" id="vent-time">Wait...</div>
                 </div>
                 <div class="act-mini neo-box">
-                    <div class="act-mini-top"><strong>🔥 Heater</strong><span class="status-led" id="heater-led"></span></div>
+                    <div class="act-mini-top"><strong>Heater</strong><span class="status-led" id="heater-led"></span></div>
                     <div class="act-controls">
                         <button id="heater-mode" class="btn-ctrl btn-mode auto" onclick="toggleMode('habitat_heater')">AUTO</button>
                         <button id="heater-state" class="btn-ctrl btn-state" onclick="toggleState('habitat_heater')" disabled>--</button>
@@ -65,52 +65,52 @@
         <div class="half-pane pane-rest">
             <h2 class="section-heading">📡 REST Sensors</h2>
             <div class="pane-content">
-                
+
                 <div class="sensor-card neo-box col-span-1">
-                    <div class="sensor-header clickable-header" onclick="openSensorModal('greenhouse_temperature', '🌡️ Greenhouse Temp')"><div><strong>🌡️ Temp</strong></div><div class="status-container"><span class="status-badge" id="temp-badge"></span><span class="status-led" id="temp-led"></span></div></div>
+                    <div class="sensor-header clickable-header" onclick="openSensorModal('greenhouse_temperature', '🌡️ Greenhouse Temp')"><div><strong>Temp</strong></div><div class="status-container"><span class="status-badge" id="temp-badge"></span><span class="status-led" id="temp-led"></span></div></div>
                     <div class="single-val-center"><div><div class="multi-value-label">Temperature</div><div class="sensor-value" id="temp-val">--</div></div></div>
                     <div class="last-updated" id="temp-time">Wait...</div>
                 </div>
 
                 <div class="sensor-card neo-box col-span-1">
-                    <div class="sensor-header clickable-header" onclick="openSensorModal('entrance_humidity', '💦 Entrance Humidity')"><div><strong>💦 Hum</strong></div><div class="status-container"><span class="status-badge" id="hum-badge"></span><span class="status-led" id="hum-led"></span></div></div>
+                    <div class="sensor-header clickable-header" onclick="openSensorModal('entrance_humidity', '💦 Entrance Humidity')"><div><strong>Hum</strong></div><div class="status-container"><span class="status-badge" id="hum-badge"></span><span class="status-led" id="hum-led"></span></div></div>
                     <div class="single-val-center"><div><div class="multi-value-label">Humidity</div><div class="sensor-value" id="hum-val">--</div></div></div>
                     <div class="last-updated" id="hum-time">Wait...</div>
                 </div>
 
                 <div class="sensor-card neo-box col-span-1">
-                    <div class="sensor-header clickable-header" onclick="openSensorModal('co2_hall', '☁️ CO2 Level')"><div><strong>☁️ CO2</strong></div><div class="status-container"><span class="status-badge" id="co2-badge"></span><span class="status-led" id="co2-led"></span></div></div>
+                    <div class="sensor-header clickable-header" onclick="openSensorModal('co2_hall', '☁️ CO2 Level')"><div><strong>CO2</strong></div><div class="status-container"><span class="status-badge" id="co2-badge"></span><span class="status-led" id="co2-led"></span></div></div>
                     <div class="single-val-center"><div><div class="multi-value-label">CO2 Level</div><div class="sensor-value" id="co2-val">--</div></div></div>
                     <div class="last-updated" id="co2-time">Wait...</div>
                 </div>
 
                 <div class="sensor-card neo-box col-span-1">
-                    <div class="sensor-header clickable-header" onclick="openSensorModal('hydroponic_ph', '🧪 Hydroponic pH')"><div><strong>🧪 pH</strong></div><div class="status-container"><span class="status-badge" id="ph-badge"></span><span class="status-led" id="ph-led"></span></div></div>
+                    <div class="sensor-header clickable-header" onclick="openSensorModal('hydroponic_ph', '🧪 Hydroponic pH')"><div><strong>pH</strong></div><div class="status-container"><span class="status-badge" id="ph-badge"></span><span class="status-led" id="ph-led"></span></div></div>
                     <div class="single-val-center"><div><div class="multi-value-label">Hydroponic</div><div class="sensor-value" id="ph-val">--</div></div></div>
                     <div class="last-updated" id="ph-time">Wait...</div>
                 </div>
 
                 <div class="sensor-card neo-box col-span-2" id="water-tank-card">
                     <div class="water-wave" id="water-level-bg"></div>
-                    <div class="sensor-header clickable-header" onclick="openSensorModal('water_tank_level', '💧 Water Tank')" style="position: relative; z-index: 1;"><div><strong>💧 Water Tank</strong></div><div class="status-container"><span class="status-badge" id="water-badge"></span><span class="status-led" id="water-led"></span></div></div>
+                    <div class="sensor-header clickable-header" onclick="openSensorModal('water_tank_level', '💧 Water Tank')" style="position: relative; z-index: 1;"><div><strong>Water Tank</strong></div><div class="status-container"><span class="status-badge" id="water-badge"></span><span class="status-led" id="water-led"></span></div></div>
                     <div class="grid-2" style="position: relative; z-index: 1;"><div><div class="multi-value-label">Capacity</div><div class="sensor-value" id="water-perc-val">--</div></div><div><div class="multi-value-label">Volume</div><div class="sensor-value" id="water-liters-val">--</div></div></div>
                     <div class="last-updated" id="water-time" style="position: relative; z-index: 1;">Wait...</div>
                 </div>
 
                 <div class="sensor-card neo-box col-span-2">
-                    <div class="sensor-header clickable-header" onclick="openSensorModal('air_quality_voc', '☣️ Air Quality (VOC)')"><div><strong>☣️ Air Quality (VOC)</strong></div><div class="status-container"><span class="status-badge" id="voc-badge"></span><span class="status-led" id="voc-led"></span></div></div>
+                    <div class="sensor-header clickable-header" onclick="openSensorModal('air_quality_voc', '☣️ Air Quality (VOC)')"><div><strong>Air Quality (VOC)</strong></div><div class="status-container"><span class="status-badge" id="voc-badge"></span><span class="status-led" id="voc-led"></span></div></div>
                     <div class="grid-2"><div><div class="multi-value-label">VOC Index</div><div class="sensor-value" id="voc-val">--</div></div><div><div class="multi-value-label">CO2e</div><div class="sensor-value" id="co2e-val">--</div></div></div>
                     <div class="last-updated" id="voc-time">Wait...</div>
                 </div>
 
                 <div class="sensor-card neo-box col-span-3">
-                    <div class="sensor-header clickable-header" onclick="openSensorModal('air_quality_pm25', '🌫️ Particulate (PM)')"><div><strong>🌫️ Particulate (PM)</strong></div><div class="status-container"><span class="status-badge" id="pm-badge"></span><span class="status-led" id="pm-led"></span></div></div>
+                    <div class="sensor-header clickable-header" onclick="openSensorModal('air_quality_pm25', '🌫️ Particulate (PM)')"><div><strong>Particulate (PM)</strong></div><div class="status-container"><span class="status-badge" id="pm-badge"></span><span class="status-led" id="pm-led"></span></div></div>
                     <div class="grid-3"><div><div class="multi-value-label">PM 1.0</div><div class="sensor-value" id="pm1-val">--</div></div><div><div class="multi-value-label">PM 2.5</div><div class="sensor-value" id="pm25-val">--</div></div><div><div class="multi-value-label">PM 10</div><div class="sensor-value" id="pm10-val">--</div></div></div>
                     <div class="last-updated" id="pm-time">Wait...</div>
                 </div>
 
                 <div class="sensor-card neo-box col-span-1">
-                    <div class="sensor-header clickable-header" onclick="openSensorModal('corridor_pressure', '💨 Corridor Pressure')"><div><strong>💨 Press.</strong></div><div class="status-container"><span class="status-badge" id="press-badge"></span><span class="status-led" id="press-led"></span></div></div>
+                    <div class="sensor-header clickable-header" onclick="openSensorModal('corridor_pressure', '💨 Corridor Pressure')"><div><strong>Press.</strong></div><div class="status-container"><span class="status-badge" id="press-badge"></span><span class="status-led" id="press-led"></span></div></div>
                     <div class="single-val-center"><div><div class="multi-value-label">Corridor</div><div class="sensor-value" id="press-val">--</div></div></div>
                     <div class="last-updated" id="press-time">Wait...</div>
                 </div>
@@ -122,49 +122,49 @@
             <div class="pane-content">
 
                 <div class="sensor-card neo-box col-span-4">
-                    <div class="sensor-header clickable-header" onclick="openSensorModal('mars/telemetry/solar_array', '☀️ Solar Arrays')"><div><strong>☀️ Solar Arrays</strong></div><div class="status-container"><span class="status-badge" id="solar-badge"></span><span class="status-led" id="solar-led"></span></div></div>
+                    <div class="sensor-header clickable-header" onclick="openSensorModal('mars/telemetry/solar_array', '☀️ Solar Arrays')"><div><strong>Solar Arrays</strong></div><div class="status-container"><span class="status-badge" id="solar-badge"></span><span class="status-led" id="solar-led"></span></div></div>
                     <div class="grid-4"><div><div class="multi-value-label">Power</div><div class="sensor-value" id="solar-p-val">--</div></div><div><div class="multi-value-label">Voltage</div><div class="sensor-value" id="solar-v-val">--</div></div><div><div class="multi-value-label">Current</div><div class="sensor-value" id="solar-a-val">--</div></div><div><div class="multi-value-label">Total</div><div class="sensor-value" id="solar-c-val">--</div></div></div>
                     <div class="last-updated" id="solar-time">Wait...</div>
                 </div>
 
                 <div class="sensor-card neo-box col-span-4">
-                    <div class="sensor-header clickable-header" onclick="openSensorModal('mars/telemetry/power_bus', '🔋 Power Bus')"><div><strong>🔋 Power Bus</strong></div><div class="status-container"><span class="status-badge" id="bus-badge"></span><span class="status-led" id="bus-led"></span></div></div>
+                    <div class="sensor-header clickable-header" onclick="openSensorModal('mars/telemetry/power_bus', '🔋 Power Bus')"><div><strong>Power Bus</strong></div><div class="status-container"><span class="status-badge" id="bus-badge"></span><span class="status-led" id="bus-led"></span></div></div>
                     <div class="grid-4"><div><div class="multi-value-label">Power</div><div class="sensor-value" id="bus-p-val">--</div></div><div><div class="multi-value-label">Voltage</div><div class="sensor-value" id="bus-v-val">--</div></div><div><div class="multi-value-label">Current</div><div class="sensor-value" id="bus-a-val">--</div></div><div><div class="multi-value-label">Total</div><div class="sensor-value" id="bus-c-val">--</div></div></div>
                     <div class="last-updated" id="bus-time">Wait...</div>
                 </div>
 
                 <div class="sensor-card neo-box col-span-4">
-                    <div class="sensor-header clickable-header" onclick="openSensorModal('mars/telemetry/power_consumption', '⚡ Power Consumption')"><div><strong>⚡ Power Consumption</strong></div><div class="status-container"><span class="status-badge" id="cons-badge"></span><span class="status-led" id="cons-led"></span></div></div>
+                    <div class="sensor-header clickable-header" onclick="openSensorModal('mars/telemetry/power_consumption', '⚡ Power Consumption')"><div><strong>Power Consumption</strong></div><div class="status-container"><span class="status-badge" id="cons-badge"></span><span class="status-led" id="cons-led"></span></div></div>
                     <div class="grid-4"><div><div class="multi-value-label">Power</div><div class="sensor-value" id="cons-p-val">--</div></div><div><div class="multi-value-label">Voltage</div><div class="sensor-value" id="cons-v-val">--</div></div><div><div class="multi-value-label">Current</div><div class="sensor-value" id="cons-a-val">--</div></div><div><div class="multi-value-label">Total</div><div class="sensor-value" id="cons-c-val">--</div></div></div>
                     <div class="last-updated" id="cons-time">Wait...</div>
                 </div>
 
                 <div class="sensor-card neo-box col-span-2">
-                    <div class="sensor-header clickable-header" onclick="openSensorModal('mars/telemetry/thermal_loop', '🌡️ Thermal Loop')"><div><strong>🌡️ Thermal Loop</strong></div><div class="status-container"><span class="status-badge" id="thermal-badge"></span><span class="status-led" id="thermal-led"></span></div></div>
+                    <div class="sensor-header clickable-header" onclick="openSensorModal('mars/telemetry/thermal_loop', '🌡️ Thermal Loop')"><div><strong>Thermal Loop</strong></div><div class="status-container"><span class="status-badge" id="thermal-badge"></span><span class="status-led" id="thermal-led"></span></div></div>
                     <div class="grid-2"><div><div class="multi-value-label">Temperature</div><div class="sensor-value" id="thermal-t-val">--</div></div><div><div class="multi-value-label">Flow Rate</div><div class="sensor-value" id="thermal-f-val">--</div></div></div>
                     <div class="last-updated" id="thermal-time">Wait...</div>
                 </div>
 
                 <div class="sensor-card neo-box col-span-1">
-                    <div class="sensor-header clickable-header" onclick="openSensorModal('mars/telemetry/radiation', '☢️ Radiation')"><div><strong>☢️ Rads</strong></div><div class="status-container"><span class="status-badge" id="rad-badge"></span><span class="status-led" id="rad-led"></span></div></div>
+                    <div class="sensor-header clickable-header" onclick="openSensorModal('mars/telemetry/radiation', '☢️ Radiation')"><div><strong>Rads</strong></div><div class="status-container"><span class="status-badge" id="rad-badge"></span><span class="status-led" id="rad-led"></span></div></div>
                     <div class="single-val-center"><div><div class="multi-value-label">Radiation</div><div class="sensor-value" id="rad-val">--</div></div></div>
                     <div class="last-updated" id="rad-time">Wait...</div>
                 </div>
 
                 <div class="sensor-card neo-box col-span-1">
-                    <div class="sensor-header clickable-header" onclick="openSensorModal('mars/telemetry/life_support', '💚 Life Support')"><div><strong>💚 Life</strong></div><div class="status-container"><span class="status-badge" id="life-badge"></span><span class="status-led" id="life-led"></span></div></div>
+                    <div class="sensor-header clickable-header" onclick="openSensorModal('mars/telemetry/life_support', '💚 Life Support')"><div><strong>Life</strong></div><div class="status-container"><span class="status-badge" id="life-badge"></span><span class="status-led" id="life-led"></span></div></div>
                     <div class="single-val-center"><div><div class="multi-value-label">Oxygen</div><div class="sensor-value" id="life-val">--</div></div></div>
                     <div class="last-updated" id="life-time">Wait...</div>
                 </div>
 
                 <div class="sensor-card neo-box col-span-1">
-                    <div class="sensor-header clickable-header" onclick="openSensorModal('mars/telemetry/airlock', '🚪 Airlock')"><div><strong>🚪 Airlock</strong></div><div class="status-container"><span class="status-badge" id="airlock-badge"></span><span class="status-led" id="airlock-led"></span></div></div>
+                    <div class="sensor-header clickable-header" onclick="openSensorModal('mars/telemetry/airlock', '🚪 Airlock')"><div><strong>Airlock</strong></div><div class="status-container"><span class="status-badge" id="airlock-badge"></span><span class="status-led" id="airlock-led"></span></div></div>
                     <div class="single-val-center"><div><div class="multi-value-label">Cycles</div><div class="sensor-value" id="airlock-val">--</div></div></div>
                     <div class="last-updated" id="airlock-time">Wait...</div>
                 </div>
 
                 <div class="sensor-card neo-box col-span-3" id="mission-status-card">
-                    <div class="sensor-header"><div><strong>🖥️ Mission Status</strong></div><div class="status-container"><span class="status-led led-green" id="sys-led"></span></div></div>
+                    <div class="sensor-header"><div><strong>Mission Status</strong></div><div class="status-container"><span class="status-led led-green" id="sys-led"></span></div></div>
                     <div class="grid-3">
                         <div><div class="multi-value-label">Mission Clock</div><div class="sensor-value" id="sys-clock">--:--:--</div></div>
                         <div><div class="multi-value-label">Sol Day</div><div class="sensor-value" id="sys-sol">--</div></div>
@@ -178,7 +178,7 @@
 
     <div id="view-energy" style="display: none; flex-direction: column; flex: 1; min-height: 0;">
         <div class="neo-box" style="padding: 1rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
-            <h2 class="section-heading" style="margin: 0;">⚡ Power Balance</h2>
+            <h2 class="section-heading" style="margin: 0;">Power Balance</h2>
             <div id="energy-status-badge" class="energy-waiting" style="padding: 0.4rem 1rem; font-weight: bold; border: var(--brutal-border); border-radius: 6px;">Waiting for data...</div>
         </div>
         <div class="neo-box" style="flex: 1; padding: 1.5rem; position: relative; min-height: 0;">
@@ -234,7 +234,7 @@
                     <label>State</label>
                     <select id="rule-state" class="form-control" required><option value="ON">ON</option><option value="OFF">OFF</option></select>
                 </div>
-                <button type="submit" class="btn-form">➕ Add</button>
+                <button type="submit" class="btn-form">Add</button>
             </form>
         </div>
         <div class="rules-list-wrapper">
@@ -246,7 +246,7 @@
         <div class="modal-content neo-box">
             <div class="modal-header">
                 <h2 id="modal-title">Sensor History</h2>
-                <button class="close-btn" onclick="closeSensorModalBtn()">✖</button>
+                <button class="close-btn" onclick="closeSensorModalBtn()">x</button>
             </div>
             <div class="modal-body">
                 <div id="modal-charts-container" style="width: 100%; display: flex; flex-direction: column; gap: 1.5rem;"></div>

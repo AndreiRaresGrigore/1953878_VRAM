@@ -34,14 +34,14 @@
 body {
     font-family: 'Oxanium', 'Share Tech Mono', monospace;
     background-color: var(--bg-color);
-    background-image: 
+    background-image:
         radial-gradient(ellipse at 20% 50%, rgba(193, 68, 14, 0.04) 0%, transparent 60%),
         radial-gradient(ellipse at 80% 20%, rgba(45, 255, 122, 0.02) 0%, transparent 50%);
     color: var(--text-primary);
     margin: 0;
-    padding: 0.4rem 1rem; 
+    padding: 0.4rem 1rem;
     height: 100vh;
-    overflow: hidden; 
+    overflow: hidden;
     display: flex;
     flex-direction: column;
 }
@@ -49,7 +49,7 @@ body {
 .neo-box {
     border: var(--brutal-border);
     box-shadow: var(--brutal-shadow), inset 0 0 30px rgba(0,0,0,0.3);
-    border-radius: 4px; 
+    border-radius: 4px;
     background-color: var(--panel-bg);
 }
 
@@ -185,7 +185,7 @@ body {
     }
     /* Comprime le colonne se lo schermo è piccolo */
     .pane-rest .pane-content, .pane-telemetry .pane-content {
-        grid-template-columns: repeat(2, 1fr); 
+        grid-template-columns: repeat(2, 1fr);
     }
     .col-span-3, .col-span-4, .col-span-5 {
         grid-column: span 2;
@@ -204,7 +204,7 @@ body {
 #water-tank-card {
     position: relative;
     overflow: hidden;
-    background-color: var(--panel-bg); 
+    background-color: var(--panel-bg);
 }
 
 .water-wave {
@@ -232,7 +232,7 @@ body {
     left: -10%;
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.15"><filter id="a"><feTurbulence type="turbulence" baseFrequency="0.05" numOctaves="2"/></filter><rect width="100%" height="100%" filter="url(%23a)"/></svg>');
     background-size: 50% 50%;
-    animation: wave-wobble 12s linear infinite; 
+    animation: wave-wobble 12s linear infinite;
 }
 
 /* NUOVO: Increspature evidenti sulla CIMA del recipiente */
@@ -244,7 +244,7 @@ body {
     width: 100%;
     height: 14px;
     /* Due onde SVG morbide: una semi-trasparente (sfondo) e una solida (primo piano) */
-    background-image: 
+    background-image:
         url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0 10 Q 25 0 50 10 T 100 10 L 100 20 L 0 20 Z" fill="%2393C5FD" opacity="0.5"/></svg>'),
         url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0 15 Q 25 5 50 15 T 100 15 L 100 20 L 0 20 Z" fill="%2393C5FD"/></svg>');
     background-size: 130px 100%, 90px 100%; /* Larghezze sfalsate per non farle sovrapporre mai in modo identico */
