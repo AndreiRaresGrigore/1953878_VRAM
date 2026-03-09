@@ -123,7 +123,7 @@ function recordSensorData(sensorId, measurements) {
             h.metrics[pName].push(parseFloat(m.value));
         }
     }
-    if (modalSensorId === sensorId && modalChart) refreshModalChart();
+    if (modalSensorId === sensorId && modalCharts.length > 0) refreshModalChart();
 }
 
 const METRIC_COLORS = [
