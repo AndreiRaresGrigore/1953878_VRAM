@@ -363,7 +363,7 @@ const client = mqtt.connect('ws://mars_admin:mars_admin@localhost:15675/ws', {
     reconnectPeriod: 5000, clientId: 'mars_dashboard_' + Math.random().toString(16).substr(2, 8), keepalive: 15, clean: true
 });
 
-client.on('connect', () => { statusBtn.innerText = "Connected (Live)"; statusBtn.style.backgroundColor = "var(--color-green)"; client.subscribe('#'); });
+client.on('connect', () => { statusBtn.innerText = "Connected (Live)"; statusBtn.style.backgroundColor = "var(--color-green)"; statusBtn.style.borderColor = "var(--color-green-accent)";statusBtn.style.color = "var(--color-green-accent)"; client.subscribe('#'); });
 
 client.on('message', (topic, message) => {
     try {
