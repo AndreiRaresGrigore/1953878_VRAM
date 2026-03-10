@@ -185,13 +185,43 @@
         </div>
     </div>
 
-    <div id="view-energy" style="display: none; flex-direction: column; flex: 1; min-height: 0;">
-        <div class="neo-box" style="padding: 1rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
-            <h2 class="section-heading" style="margin: 0;">Power Balance</h2>
-            <div id="energy-status-badge" class="energy-waiting" style="padding: 0.4rem 1rem; font-weight: bold; border: var(--brutal-border); border-radius: 6px;">Waiting for data...</div>
+    <div id="view-energy" style="display: none; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto; gap: 0.8rem; padding-bottom: 0.5rem;">
+        <div class="neo-box chart-panel">
+            <div class="chart-panel-header">
+                <h2 class="section-heading" style="margin: 0;">Power Balance</h2>
+                <div id="energy-status-badge" class="energy-waiting" style="padding: 0.4rem 1rem; font-weight: bold; border: var(--brutal-border); border-radius: 6px;">Waiting for data...</div>
+            </div>
+            <div class="chart-panel-body"><canvas id="energy-chart"></canvas></div>
+            <div class="chart-actuator-legend">
+                <span class="act-legend-label">Actuator events:</span>
+                <span class="act-legend-item" id="leg-fan-on" style="color:#2dff7a;">&#9646; Fan ON</span>
+                <span class="act-legend-item" id="leg-fan-off" style="color:#ff4444;">&#9646; Fan OFF</span>
+                <span class="act-legend-item" id="leg-heater-on" style="color:#38b6ff;">&#9646; Heater ON</span>
+                <span class="act-legend-item" id="leg-heater-off" style="color:#ff9933;">&#9646; Heater OFF</span>
+                <span class="act-legend-item" id="leg-hum" style="color:#b87fff;">&#9646; Humidifier</span>
+                <span class="act-legend-item" id="leg-vent" style="color:#ffee44;">&#9646; Vent</span>
+            </div>
         </div>
-        <div class="neo-box" style="flex: 1; padding: 1.5rem; position: relative; min-height: 0;">
-            <canvas id="energy-chart"></canvas>
+        <div class="neo-box chart-panel">
+            <div class="chart-panel-header">
+                <h2 class="section-heading" style="margin: 0;">Climate Correlation</h2>
+                <span class="chart-panel-hint">Temp / Humidity / CO2 &mdash; Heater &amp; Humidifier act on these</span>
+            </div>
+            <div class="chart-panel-body"><canvas id="climate-chart"></canvas></div>
+        </div>
+        <div class="neo-box chart-panel">
+            <div class="chart-panel-header">
+                <h2 class="section-heading" style="margin: 0;">Pressure vs Radiation</h2>
+                <span class="chart-panel-hint">Lower corridor pressure correlates with higher radiation exposure</span>
+            </div>
+            <div class="chart-panel-body"><canvas id="pressure-radiation-chart"></canvas></div>
+        </div>
+        <div class="neo-box chart-panel">
+            <div class="chart-panel-header">
+                <h2 class="section-heading" style="margin: 0;">Thermal Loop vs Power</h2>
+                <span class="chart-panel-hint">Thermal loop temperature and flow rate vs total power draw</span>
+            </div>
+            <div class="chart-panel-body"><canvas id="thermal-power-chart"></canvas></div>
         </div>
     </div>
 

@@ -666,3 +666,66 @@ body {
     box-shadow: none;
     border-style: dashed;
 }
+/* ==========================================
+   ENERGY VIEW — MULTI-CHART PANELS
+   ========================================== */
+#view-energy {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) var(--panel-bg);
+}
+#view-energy::-webkit-scrollbar { width: 6px; }
+#view-energy::-webkit-scrollbar-track { background: var(--panel-bg); }
+#view-energy::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+.chart-panel {
+    padding: 0.9rem 1.2rem 0.7rem;
+    flex-shrink: 0;
+}
+
+.chart-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.7rem;
+    gap: 1rem;
+}
+
+.chart-panel-hint {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    font-family: 'Share Tech Mono', monospace;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-align: right;
+}
+
+.chart-panel-body {
+    position: relative;
+    height: 220px;
+}
+
+.chart-actuator-legend {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+    padding-top: 0.4rem;
+    border-top: 1px dashed var(--text-muted);
+}
+
+.act-legend-label {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.act-legend-item {
+    font-size: 0.65rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-weight: bold;
+    letter-spacing: 0.04em;
+    opacity: 0.8;
+}

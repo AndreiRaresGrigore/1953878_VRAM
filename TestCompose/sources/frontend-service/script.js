@@ -302,6 +302,9 @@ async function fetchActuators() {
             if (info.state === 'ON') led.classList.add('led-green');
             else if (info.state === 'OFF') led.classList.add('led-red');
 
+            // Detect state changes for chart annotations
+            _checkActuatorStateChange(actuatorName, info.state);
+
             // Aggiorna Pulsante MODE (Auto/Manual)
             modeBtn.innerText = info.mode.toUpperCase();
             modeBtn.className = `btn-ctrl btn-mode ${info.mode}`;
@@ -392,11 +395,11 @@ client.on('message', (topic, message) => {
         // Usa deviceId invece di payload.sensor_id
         switch(deviceId) {
             case "greenhouse_temperature": {
-                const temp = getMeasure("temperature_c"); if (temp) document.getElementById('temp-val').innerText = `${temp.value} ${temp.unit}`;
+                const temp = getMeasure("temperature_c"); if (temp) { document.getElementById('temp-val').innerText = `${temp.value} ${temp.unit}`; latestTemp = parseFloat(temp.value); }
                 updateStatusDisplay('temp-led', 'temp-badge', payload.status); break;
             }
             case "corridor_pressure": {
-                const m = getMeasure("pressure_kpa"); if (m) document.getElementById('press-val').innerText = `${m.value} ${m.unit}`;
+                const m = getMeasure("pressure_kpa"); if (m) { document.getElementById('press-val').innerText = `${m.value} ${m.unit}`; latestPressure = parseFloat(m.value); }
                 updateStatusDisplay('press-led', 'press-badge', payload.status); break;
             }
             case "water_tank_level": {
@@ -410,11 +413,11 @@ client.on('message', (topic, message) => {
                 updateStatusDisplay('water-led', 'water-badge', payload.status); break;
             }
             case "co2_hall": {
-                const m = getMeasure("co2_ppm"); if (m) document.getElementById('co2-val').innerText = `${m.value} ${m.unit}`;
+                const m = getMeasure("co2_ppm"); if (m) { document.getElementById('co2-val').innerText = `${m.value} ${m.unit}`; latestCO2 = parseFloat(m.value); }
                 updateStatusDisplay('co2-led', 'co2-badge', payload.status); break;
             }
             case "entrance_humidity": {
-                const m = getMeasure("humidity_pct"); if (m) document.getElementById('hum-val').innerText = `${m.value} ${m.unit}`;
+                const m = getMeasure("humidity_pct"); if (m) { document.getElementById('hum-val').innerText = `${m.value} ${m.unit}`; latestHum = parseFloat(m.value); }
                 updateStatusDisplay('hum-led', 'hum-badge', payload.status); break;
             }
             case "air_quality_pm25": {
@@ -462,12 +465,12 @@ client.on('message', (topic, message) => {
             }
             case "mars/telemetry/thermal_loop": {
                 const t = getMeasure("temperature_c"); const f = getMeasure("flow_l_min");
-                if (t) document.getElementById('thermal-t-val').innerText = `${t.value} ${t.unit}`;
-                if (f) document.getElementById('thermal-f-val').innerText = `${f.value} ${f.unit}`;
+                if (t) { document.getElementById('thermal-t-val').innerText = `${t.value} ${t.unit}`; latestThermalTemp = parseFloat(t.value); }
+                if (f) { document.getElementById('thermal-f-val').innerText = `${f.value} ${f.unit}`; latestThermalFlow = parseFloat(f.value); }
                 updateStatusDisplay('thermal-led', 'thermal-badge', payload.status); break;
             }
             case "mars/telemetry/radiation": {
-                const m = getMeasure("radiation_uSv_h"); if (m) document.getElementById('rad-val').innerText = `${m.value} ${m.unit}`;
+                const m = getMeasure("radiation_uSv_h"); if (m) { document.getElementById('rad-val').innerText = `${m.value} ${m.unit}`; latestRadiation = parseFloat(m.value); }
                 updateStatusDisplay('rad-led', 'rad-badge', payload.status); break;
             }
             case "mars/telemetry/life_support": {
@@ -674,63 +677,287 @@ function showToast(message) {
 }
 
 // ==========================================
-// 6. ENERGY BALANCE CHART
+// 6. MULTI-CHART ENERGY VIEW
 // ==========================================
-const MAX_CHART_POINTS = 40;
-const energyLabels = Array(MAX_CHART_POINTS).fill('');
-const solarPowerData = Array(MAX_CHART_POINTS).fill(null);
-const consumptionPowerData = Array(MAX_CHART_POINTS).fill(null);
-let latestSolarPower = null;
-let latestConsumptionPower = null;
+const MAX_CHART_POINTS = 50;
+const FONT = 'Oxanium, monospace';
+
+// ---- Theme helpers (read CSS vars live) ----
+function cGrid()  { return 'rgba(128,128,128,0.1)'; }
+function cText()  { return getComputedStyle(document.documentElement).getPropertyValue('--text-secondary').trim() || '#9a8870'; }
+
+function xAxis() {
+    return { grid: { color: cGrid() }, ticks: { maxTicksLimit: 10, color: cText(), font: { family: FONT, size: 10 } } };
+}
+function yAxis(color, title, pos, drawGrid) {
+    return {
+        type: 'linear', position: pos || 'left',
+        grid: { color: drawGrid === false ? 'transparent' : cGrid(), drawOnChartArea: drawGrid !== false },
+        ticks: { color, font: { family: FONT, size: 10 } },
+        title: { display: !!title, text: title || '', color, font: { family: FONT, size: 10, weight: 'bold' } },
+        grace: '40%'
+    };
+}
+function legend() {
+    return { labels: { color: cText(), font: { family: FONT, size: 11 }, usePointStyle: true, padding: 16 } };
+}
+function baseOpts(scales) {
+    return {
+        responsive: true, maintainAspectRatio: false,
+        animation: false,
+        interaction: { mode: 'index', intersect: false },
+        scales, plugins: { legend: legend() }
+    };
+}
+
+// ---- Actuator event store ----
+// Each event: { timestamp (ms), label, color }
+// Charts track their own timestamps and draw lines where timestamps match
+const ACT_EVENT_COLORS = {
+    'cooling_fan:ON':          '#2dff7a',
+    'cooling_fan:OFF':         '#ff5555',
+    'habitat_heater:ON':       '#38b6ff',
+    'habitat_heater:OFF':      '#ff9933',
+    'entrance_humidifier:ON':  '#cc88ff',
+    'entrance_humidifier:OFF': '#9944bb',
+    'hall_ventilation:ON':     '#ffee44',
+    'hall_ventilation:OFF':    '#aa9900',
+};
+const ACT_SHORT = { cooling_fan: 'Fan', habitat_heater: 'Heat', entrance_humidifier: 'Hum', hall_ventilation: 'Vent' };
+const _prevActuatorStates = {};
+// Circular buffer of { ts, label, color } events (max 200)
+const actuatorEventLog = [];
+
+function _checkActuatorStateChange(name, state) {
+    const prev = _prevActuatorStates[name];
+    if (prev !== undefined && prev !== state) {
+        const key = `${name}:${state}`;
+        actuatorEventLog.push({
+            ts: Date.now(),
+            label: `${ACT_SHORT[name] || name} ${state}`,
+            color: ACT_EVENT_COLORS[key] || '#ffffff'
+        });
+        if (actuatorEventLog.length > 200) actuatorEventLog.shift();
+        // Redraw all charts immediately
+        [energyChart, climateChart, pressRadChart, thermalPowerChart].forEach(c => c && c.update('none'));
+    }
+    _prevActuatorStates[name] = state;
+}
+
+// ---- Custom plugin: vertical actuator event lines ----
+// Each chart instance carries a `_tsBuffer` array of timestamps (ms) for its X labels.
+const actuatorLinesPlugin = {
+    id: 'actuatorLines',
+    afterDraw(chart) {
+        const tsBuffer = chart._tsBuffer;
+        if (!tsBuffer || !actuatorEventLog.length) return;
+        const { ctx, chartArea: { top, bottom }, scales: { x } } = chart;
+        if (!x) return;
+
+        const n = tsBuffer.length;
+        ctx.save();
+        actuatorEventLog.forEach(ev => {
+            // Find the closest index in tsBuffer to this event's timestamp
+            let closest = -1, minDist = Infinity;
+            for (let i = 0; i < n; i++) {
+                if (tsBuffer[i] === null) continue;
+                const d = Math.abs(tsBuffer[i] - ev.ts);
+                if (d < minDist) { minDist = d; closest = i; }
+            }
+            // Only draw if event is within 30s of a known point
+            if (closest < 0 || minDist > 30000) return;
+
+            const xPos = x.getPixelForValue(closest);
+            ctx.beginPath();
+            ctx.setLineDash([4, 3]);
+            ctx.strokeStyle = ev.color;
+            ctx.lineWidth = 1.5;
+            ctx.globalAlpha = 0.8;
+            ctx.moveTo(xPos, top);
+            ctx.lineTo(xPos, bottom);
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+            ctx.globalAlpha = 1;
+            ctx.fillStyle = ev.color;
+            ctx.font = `bold 8px "Share Tech Mono", monospace`;
+            ctx.textAlign = 'center';
+            ctx.fillText(ev.label, xPos, top + 9);
+        });
+        ctx.restore();
+    }
+};
+Chart.register(actuatorLinesPlugin);
+
+// ---- Generic buffer helper ----
+function makeBuffer(n) { return { labels: Array(n).fill(''), ts: Array(n).fill(null) }; }
+
+// =========================================
+// CHART 1: Power Balance
+// =========================================
+const solarPowerData      = Array(MAX_CHART_POINTS).fill(null);
+const consumptionPowerData= Array(MAX_CHART_POINTS).fill(null);
+let latestSolarPower = null, latestConsumptionPower = null;
+const _energyBuf = makeBuffer(MAX_CHART_POINTS);
 
 const energyChart = new Chart(document.getElementById('energy-chart').getContext('2d'), {
     type: 'line',
     data: {
-        labels: energyLabels,
+        labels: _energyBuf.labels,
         datasets: [
-            { label: 'Solar Production (kW)', data: solarPowerData, borderColor: '#FBBF24', backgroundColor: 'rgba(251, 191, 36, 0.12)', borderWidth: 2.5, pointRadius: 2, tension: 0.35, spanGaps: false, fill: true },
-            { label: 'Power Consumption (kW)', data: consumptionPowerData, borderColor: '#F87171', backgroundColor: 'rgba(248, 113, 113, 0.12)', borderWidth: 2.5, pointRadius: 2, tension: 0.35, spanGaps: false, fill: true }
+            { label: 'Solar Production (kW)', data: solarPowerData, borderColor: '#FBBF24', backgroundColor: 'rgba(251,191,36,0.10)', borderWidth: 2.5, pointRadius: 2, tension: 0.35, spanGaps: false, fill: true },
+            { label: 'Power Consumption (kW)', data: consumptionPowerData, borderColor: '#F87171', backgroundColor: 'rgba(248,113,113,0.10)', borderWidth: 2.5, pointRadius: 2, tension: 0.35, spanGaps: false, fill: true }
         ]
     },
     options: {
-        responsive: true, maintainAspectRatio: false, animation: { duration: 250 }, interaction: { mode: 'index', intersect: false },
-        scales: {
-            x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { maxTicksLimit: 8, font: { family: 'Space Grotesk', size: 11 } } },
-            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { family: 'Space Grotesk', size: 11 } }, title: { display: true, text: 'Power (kW)', font: { family: 'Space Grotesk', size: 12, weight: 'bold' } } }
-        },
+        ...baseOpts({ x: xAxis(), y: { ...yAxis(cText(), 'kW', 'left'), beginAtZero: true } }),
         plugins: {
-            legend: { labels: { font: { family: 'Space Grotesk', size: 12 }, usePointStyle: true } },
+            legend: legend(),
             tooltip: {
                 callbacks: {
                     afterBody(items) {
-                        const i = items[0].dataIndex; const solar = solarPowerData[i]; const cons = consumptionPowerData[i];
-                        if (solar != null && cons != null) {
-                            const b = solar - cons; return [`Balance: ${b >= 0 ? '+' : ''}${b.toFixed(2)} kW  (${b >= 0 ? 'SURPLUS' : 'DEFICIT'})`];
-                        }
-                        return [];
+                        const i = items[0].dataIndex;
+                        const b = (solarPowerData[i] ?? 0) - (consumptionPowerData[i] ?? 0);
+                        return [`Balance: ${b >= 0 ? '+' : ''}${b.toFixed(2)} kW (${b >= 0 ? 'SURPLUS' : 'DEFICIT'})`];
                     }
                 }
             }
         }
     }
 });
+energyChart._tsBuffer = _energyBuf.ts;
 
 function _pushEnergyPoint() {
-    if (latestSolarPower === null || latestConsumptionPower === null) return;
-
-    const label = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    energyLabels.shift();       energyLabels.push(label);
-    solarPowerData.shift();     solarPowerData.push(latestSolarPower);
-    consumptionPowerData.shift(); consumptionPowerData.push(latestConsumptionPower);
-
-    energyChart.update('none');
-
+    // Called by the master clock — just updates the badge
     const badge = document.getElementById('energy-status-badge');
-    const balance = latestSolarPower - latestConsumptionPower;
-    badge.classList.remove('energy-surplus', 'energy-deficit', 'energy-waiting');
-    if (balance >= 0) { badge.classList.add('energy-surplus'); badge.innerText = `SURPLUS  +${balance.toFixed(2)} kW`; }
-    else { badge.classList.add('energy-deficit'); badge.innerText = `DEFICIT  ${balance.toFixed(2)} kW`; }
+    if (latestSolarPower !== null && latestConsumptionPower !== null) {
+        const balance = latestSolarPower - latestConsumptionPower;
+        badge.classList.remove('energy-surplus', 'energy-deficit', 'energy-waiting');
+        if (balance >= 0) { badge.classList.add('energy-surplus'); badge.innerText = `SURPLUS  +${balance.toFixed(2)} kW`; }
+        else { badge.classList.add('energy-deficit'); badge.innerText = `DEFICIT  ${balance.toFixed(2)} kW`; }
+    }
 }
+
+// =========================================
+// CHART 2: Climate Correlation
+// =========================================
+const tempData = Array(MAX_CHART_POINTS).fill(null);
+const humData  = Array(MAX_CHART_POINTS).fill(null);
+const co2Data  = Array(MAX_CHART_POINTS).fill(null);
+let latestTemp = null, latestHum = null, latestCO2 = null;
+const _climateBuf = makeBuffer(MAX_CHART_POINTS);
+
+const climateChart = new Chart(document.getElementById('climate-chart').getContext('2d'), {
+    type: 'line',
+    data: {
+        labels: _climateBuf.labels,
+        datasets: [
+            { label: 'Temperature (°C)', data: tempData, borderColor: '#F87171', borderWidth: 2, pointRadius: 1.5, tension: 0.4, spanGaps: true, fill: false, yAxisID: 'yTemp' },
+            { label: 'Humidity (%)',     data: humData,  borderColor: '#60A5FA', borderWidth: 2, pointRadius: 1.5, tension: 0.4, spanGaps: true, fill: false, yAxisID: 'yHum'  },
+            { label: 'CO2 (ppm)',        data: co2Data,  borderColor: '#34D399', borderWidth: 2, pointRadius: 1.5, tension: 0.4, spanGaps: true, fill: false, yAxisID: 'yCO2'  }
+        ]
+    },
+    options: baseOpts({
+        x:     xAxis(),
+        yTemp: yAxis('#F87171', '°C',  'left',  true),
+        yHum:  yAxis('#60A5FA', '%',   'right', false),
+        yCO2:  yAxis('#34D399', 'ppm', 'right', false)
+    })
+});
+climateChart._tsBuffer = _climateBuf.ts;
+
+// =========================================
+// CHART 3: Pressure vs Radiation
+// =========================================
+const pressureData  = Array(MAX_CHART_POINTS).fill(null);
+const radiationData = Array(MAX_CHART_POINTS).fill(null);
+let latestPressure = null, latestRadiation = null;
+const _pressRadBuf = makeBuffer(MAX_CHART_POINTS);
+
+const pressRadChart = new Chart(document.getElementById('pressure-radiation-chart').getContext('2d'), {
+    type: 'line',
+    data: {
+        labels: _pressRadBuf.labels,
+        datasets: [
+            { label: 'Pressure (kPa)',    data: pressureData,  borderColor: '#A78BFA', borderWidth: 2, pointRadius: 1.5, tension: 0.4, spanGaps: true, fill: false, yAxisID: 'yPress' },
+            { label: 'Radiation (µSv/h)', data: radiationData, borderColor: '#FB923C', borderWidth: 2, pointRadius: 1.5, tension: 0.4, spanGaps: true, fill: false, yAxisID: 'yRad'   }
+        ]
+    },
+    options: baseOpts({
+        x:      xAxis(),
+        yPress: yAxis('#A78BFA', 'kPa',   'left',  true),
+        yRad:   yAxis('#FB923C', 'µSv/h', 'right', false)
+    })
+});
+pressRadChart._tsBuffer = _pressRadBuf.ts;
+
+// =========================================
+// CHART 4: Thermal Loop vs Power
+// =========================================
+const thermalTempData  = Array(MAX_CHART_POINTS).fill(null);
+const thermalFlowData  = Array(MAX_CHART_POINTS).fill(null);
+const thermalPowerData = Array(MAX_CHART_POINTS).fill(null);
+let latestThermalTemp = null, latestThermalFlow = null;
+const _thermalBuf = makeBuffer(MAX_CHART_POINTS);
+
+const thermalPowerChart = new Chart(document.getElementById('thermal-power-chart').getContext('2d'), {
+    type: 'line',
+    data: {
+        labels: _thermalBuf.labels,
+        datasets: [
+            { label: 'Thermal Temp (°C)', data: thermalTempData, borderColor: '#F87171', borderWidth: 2, pointRadius: 1.5, tension: 0.4, spanGaps: true, fill: false, yAxisID: 'yThTemp' },
+            { label: 'Flow Rate (L/min)', data: thermalFlowData, borderColor: '#60A5FA', borderWidth: 2, pointRadius: 1.5, tension: 0.4, spanGaps: true, fill: false, yAxisID: 'yFlow'   },
+            { label: 'Power Draw (kW)',   data: thermalPowerData,borderColor: '#FBBF24', borderWidth: 2, pointRadius: 1.5, tension: 0.4, spanGaps: true, fill: true,  yAxisID: 'yPow'    }
+        ]
+    },
+    options: baseOpts({
+        x:       xAxis(),
+        yThTemp: yAxis('#F87171', '°C',    'left',  true),
+        yFlow:   yAxis('#60A5FA', 'L/min', 'right', false),
+        yPow:    yAxis('#FBBF24', 'kW',    'right', false)
+    })
+});
+thermalPowerChart._tsBuffer = _thermalBuf.ts;
+
+// =========================================
+// MASTER CLOCK — ticks every 3s, pushes ALL charts in sync
+// =========================================
+function _masterTick() {
+    const now = Date.now();
+    const label = new Date(now).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    // --- Chart 1: Energy ---
+    _energyBuf.labels.shift();      _energyBuf.labels.push(label);
+    _energyBuf.ts.shift();          _energyBuf.ts.push(now);
+    solarPowerData.shift();         solarPowerData.push(latestSolarPower);
+    consumptionPowerData.shift();   consumptionPowerData.push(latestConsumptionPower);
+    energyChart.update('none');
+    _pushEnergyPoint(); // update badge
+
+    // --- Chart 2: Climate ---
+    _climateBuf.labels.shift();     _climateBuf.labels.push(label);
+    _climateBuf.ts.shift();         _climateBuf.ts.push(now);
+    tempData.shift(); tempData.push(latestTemp);
+    humData.shift();  humData.push(latestHum);
+    co2Data.shift();  co2Data.push(latestCO2);
+    climateChart.update('none');
+
+    // --- Chart 3: Pressure / Radiation ---
+    _pressRadBuf.labels.shift();    _pressRadBuf.labels.push(label);
+    _pressRadBuf.ts.shift();        _pressRadBuf.ts.push(now);
+    pressureData.shift();           pressureData.push(latestPressure);
+    radiationData.shift();          radiationData.push(latestRadiation);
+    pressRadChart.update('none');
+
+    // --- Chart 4: Thermal / Power ---
+    _thermalBuf.labels.shift();     _thermalBuf.labels.push(label);
+    _thermalBuf.ts.shift();         _thermalBuf.ts.push(now);
+    thermalTempData.shift();        thermalTempData.push(latestThermalTemp);
+    thermalFlowData.shift();        thermalFlowData.push(latestThermalFlow);
+    thermalPowerData.shift();       thermalPowerData.push(latestConsumptionPower);
+    thermalPowerChart.update('none');
+}
+setInterval(_masterTick, 3000);
 
 // ==========================================
 // 7. MISSION STATUS CARD
