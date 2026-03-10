@@ -108,6 +108,37 @@
     --glow-amber: 0 0 6px rgba(160, 96, 0, 0.2);
     --glow-red: 0 0 6px rgba(192, 42, 26, 0.25);
 }
+/* PALETTE 5 — Studio (Neo-Brutalist light) */
+[data-palette="studio"] {
+    --bg-color: #f8f5f0;
+    --panel-bg: #ffffff;
+    --border-color: #1a1a1a;
+    --shadow-color: #1a1a1a;
+    --text-primary: #1a1a1a;
+    --text-secondary: #444444;
+    --text-muted: #888888;
+    --color-green: #c8f5d8;
+    --color-green-accent: #0a8a3c;
+    --color-purple: #e8d8ff;
+    --color-purple-accent: #5a1aaa;
+    --color-blue: #c8e8ff;
+    --color-blue-accent: #0a5aaa;
+    --color-yellow: #fffac0;
+    --color-yellow-accent: #7a6000;
+    --color-red: #ffd8d8;
+    --color-red-accent: #aa1a1a;
+    --brutal-border: 2px solid var(--border-color);
+    --brutal-shadow: 3px 3px 0px 0px var(--shadow-color);
+    --glow-green: none;
+    --glow-amber: none;
+    --glow-red: none;
+}
+
+/* Studio: flat background, no radial gradient */
+[data-palette="studio"] body {
+    background-image: none;
+}
+
 .palette-switcher {
     display: flex;
     align-items: center;
@@ -167,6 +198,11 @@
     background: linear-gradient(135deg, #f5e6d3 50%, #c0622a 50%);
     border-color: #c0622a;
     color: #3a1f0d;
+}
+.palette-btn[data-target="studio"] {
+    background: linear-gradient(135deg, #ffffff 50%, #3ddc84 50%);
+    border-color: #1a1a1a;
+    color: #1a1a1a;
 }
 
 * { box-sizing: border-box; }
@@ -728,4 +764,123 @@ body {
     font-weight: bold;
     letter-spacing: 0.04em;
     opacity: 0.8;
+}
+
+/* ==========================================
+   STUDIO PALETTE — light mode overrides
+   ========================================== */
+[data-palette="studio"] .neo-box,
+[data-palette="studio"] .neo-box-logo {
+    box-shadow: var(--brutal-shadow), inset 0 0 0 rgba(0,0,0,0);
+}
+
+[data-palette="studio"] .logo-box {
+    background-color: var(--color-green);
+    border-color: var(--border-color) !important;
+}
+[data-palette="studio"] .logo-box .logo {
+    color: var(--text-primary);
+    text-shadow: none;
+}
+
+[data-palette="studio"] .section-heading {
+    background: var(--color-yellow);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+[data-palette="studio"] .tab-btn {
+    color: var(--text-primary);
+}
+[data-palette="studio"] .btn-blue {
+    background-color: var(--color-blue);
+    border-color: var(--border-color) !important;
+}
+[data-palette="studio"] .btn-blue.active { color: var(--text-primary); }
+[data-palette="studio"] .btn-yellow {
+    background-color: var(--color-yellow);
+    border-color: var(--border-color) !important;
+}
+[data-palette="studio"] .btn-yellow.active { color: var(--text-primary); }
+[data-palette="studio"] .btn-green {
+    background-color: var(--color-green);
+    border-color: var(--border-color) !important;
+    color: var(--text-primary);
+}
+
+[data-palette="studio"] .sensor-value {
+    text-shadow: none;
+    color: var(--color-green-accent);
+}
+
+[data-palette="studio"] .last-updated {
+    border-top-color: var(--text-muted);
+}
+
+[data-palette="studio"] .water-wave {
+    background-color: #a8d8f0;
+    border-top-color: var(--color-blue-accent);
+    box-shadow: 0 -4px 12px rgba(10, 90, 170, 0.15);
+}
+
+[data-palette="studio"] .rule-form-container {
+    background-color: var(--color-green);
+    border-color: var(--border-color) !important;
+}
+[data-palette="studio"] .form-group label { color: var(--text-primary); }
+
+[data-palette="studio"] .toast {
+    background-color: var(--color-yellow);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+    box-shadow: var(--brutal-shadow);
+}
+
+[data-palette="studio"] .btn-purple {
+    color: var(--text-muted);
+    border-color: var(--text-muted);
+}
+
+[data-palette="studio"] .act-mini {
+    border-color: var(--border-color);
+}
+
+[data-palette="studio"] .btn-mode.auto {
+    background-color: var(--color-blue);
+    color: var(--text-primary);
+    border-color: var(--border-color) !important;
+}
+[data-palette="studio"] .btn-mode.manual {
+    background-color: var(--color-yellow);
+    color: var(--text-primary);
+    border-color: var(--border-color) !important;
+}
+[data-palette="studio"] .btn-state.on {
+    background-color: var(--color-green);
+    color: var(--text-primary);
+    border-color: var(--border-color) !important;
+}
+[data-palette="studio"] .btn-state.off {
+    background-color: var(--color-red);
+    color: var(--text-primary);
+    border-color: var(--border-color) !important;
+}
+
+[data-palette="studio"] .modal-header h2 { color: var(--text-primary); }
+[data-palette="studio"] .close-btn {
+    background: var(--color-red);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+[data-palette="studio"] .energy-surplus {
+    background-color: var(--color-green);
+    color: var(--color-green-accent);
+    box-shadow: var(--brutal-shadow);
+    border-color: var(--border-color) !important;
+}
+[data-palette="studio"] .energy-deficit {
+    background-color: var(--color-red);
+    color: var(--color-red-accent);
+    box-shadow: var(--brutal-shadow);
 }

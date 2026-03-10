@@ -31,6 +31,7 @@
                     <button class="palette-btn" data-target="arctic" onclick="setPalette('arctic')" title="Arctic — Ice Blue">A</button>
                     <button class="palette-btn" data-target="phosphor" onclick="setPalette('phosphor')" title="Phosphor — CRT Green">P</button>
                     <button class="palette-btn" data-target="dune" onclick="setPalette('dune')" title="Dune — Mars Pastel">D</button>
+                    <button class="palette-btn" data-target="studio" onclick="setPalette('studio')" title="Studio — Neo-Brutalist Light">S</button>
                 </div>
             </div>
             <div class="actuators-bar">
@@ -209,20 +210,8 @@
             </div>
             <div class="chart-panel-body"><canvas id="climate-chart"></canvas></div>
         </div>
-        <div class="neo-box chart-panel">
-            <div class="chart-panel-header">
-                <h2 class="section-heading" style="margin: 0;">Pressure vs Radiation</h2>
-                <span class="chart-panel-hint">Lower corridor pressure correlates with higher radiation exposure</span>
-            </div>
-            <div class="chart-panel-body"><canvas id="pressure-radiation-chart"></canvas></div>
-        </div>
-        <div class="neo-box chart-panel">
-            <div class="chart-panel-header">
-                <h2 class="section-heading" style="margin: 0;">Thermal Loop vs Power</h2>
-                <span class="chart-panel-hint">Thermal loop temperature and flow rate vs total power draw</span>
-            </div>
-            <div class="chart-panel-body"><canvas id="thermal-power-chart"></canvas></div>
-        </div>
+
+
     </div>
 
     <div id="view-rules" style="display: none; flex-direction: column; flex: 1; min-height: 0;">
@@ -301,7 +290,7 @@
         // Palette Switcher
         (function() {
             const STORAGE_KEY = 'mars-dashboard-palette';
-            const palettes = ['mars', 'arctic', 'phosphor', 'dune'];
+            const palettes = ['mars', 'arctic', 'phosphor', 'dune', 'studio'];
 
             function setPalette(name) {
                 if (!palettes.includes(name)) return;

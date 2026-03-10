@@ -739,7 +739,7 @@ function _checkActuatorStateChange(name, state) {
         });
         if (actuatorEventLog.length > 200) actuatorEventLog.shift();
         // Redraw all charts immediately
-        [energyChart, climateChart, pressRadChart, thermalPowerChart].forEach(c => c && c.update('none'));
+        [energyChart, climateChart].forEach(c => c && c.update('none'));
     }
     _prevActuatorStates[name] = state;
 }
@@ -867,59 +867,6 @@ const climateChart = new Chart(document.getElementById('climate-chart').getConte
 climateChart._tsBuffer = _climateBuf.ts;
 
 // =========================================
-// CHART 3: Pressure vs Radiation
-// =========================================
-const pressureData  = Array(MAX_CHART_POINTS).fill(null);
-const radiationData = Array(MAX_CHART_POINTS).fill(null);
-let latestPressure = null, latestRadiation = null;
-const _pressRadBuf = makeBuffer(MAX_CHART_POINTS);
-
-const pressRadChart = new Chart(document.getElementById('pressure-radiation-chart').getContext('2d'), {
-    type: 'line',
-    data: {
-        labels: _pressRadBuf.labels,
-        datasets: [
-            { label: 'Pressure (kPa)',    data: pressureData,  borderColor: '#A78BFA', borderWidth: 2, pointRadius: 1.5, tension: 0.4, spanGaps: true, fill: false, yAxisID: 'yPress' },
-            { label: 'Radiation (µSv/h)', data: radiationData, borderColor: '#FB923C', borderWidth: 2, pointRadius: 1.5, tension: 0.4, spanGaps: true, fill: false, yAxisID: 'yRad'   }
-        ]
-    },
-    options: baseOpts({
-        x:      xAxis(),
-        yPress: yAxis('#A78BFA', 'kPa',   'left',  true),
-        yRad:   yAxis('#FB923C', 'µSv/h', 'right', false)
-    })
-});
-pressRadChart._tsBuffer = _pressRadBuf.ts;
-
-// =========================================
-// CHART 4: Thermal Loop vs Power
-// =========================================
-const thermalTempData  = Array(MAX_CHART_POINTS).fill(null);
-const thermalFlowData  = Array(MAX_CHART_POINTS).fill(null);
-const thermalPowerData = Array(MAX_CHART_POINTS).fill(null);
-let latestThermalTemp = null, latestThermalFlow = null;
-const _thermalBuf = makeBuffer(MAX_CHART_POINTS);
-
-const thermalPowerChart = new Chart(document.getElementById('thermal-power-chart').getContext('2d'), {
-    type: 'line',
-    data: {
-        labels: _thermalBuf.labels,
-        datasets: [
-            { label: 'Thermal Temp (°C)', data: thermalTempData, borderColor: '#F87171', borderWidth: 2, pointRadius: 1.5, tension: 0.4, spanGaps: true, fill: false, yAxisID: 'yThTemp' },
-            { label: 'Flow Rate (L/min)', data: thermalFlowData, borderColor: '#60A5FA', borderWidth: 2, pointRadius: 1.5, tension: 0.4, spanGaps: true, fill: false, yAxisID: 'yFlow'   },
-            { label: 'Power Draw (kW)',   data: thermalPowerData,borderColor: '#FBBF24', borderWidth: 2, pointRadius: 1.5, tension: 0.4, spanGaps: true, fill: true,  yAxisID: 'yPow'    }
-        ]
-    },
-    options: baseOpts({
-        x:       xAxis(),
-        yThTemp: yAxis('#F87171', '°C',    'left',  true),
-        yFlow:   yAxis('#60A5FA', 'L/min', 'right', false),
-        yPow:    yAxis('#FBBF24', 'kW',    'right', false)
-    })
-});
-thermalPowerChart._tsBuffer = _thermalBuf.ts;
-
-// =========================================
 // MASTER CLOCK — ticks every 3s, pushes ALL charts in sync
 // =========================================
 function _masterTick() {
@@ -941,21 +888,6 @@ function _masterTick() {
     humData.shift();  humData.push(latestHum);
     co2Data.shift();  co2Data.push(latestCO2);
     climateChart.update('none');
-
-    // --- Chart 3: Pressure / Radiation ---
-    _pressRadBuf.labels.shift();    _pressRadBuf.labels.push(label);
-    _pressRadBuf.ts.shift();        _pressRadBuf.ts.push(now);
-    pressureData.shift();           pressureData.push(latestPressure);
-    radiationData.shift();          radiationData.push(latestRadiation);
-    pressRadChart.update('none');
-
-    // --- Chart 4: Thermal / Power ---
-    _thermalBuf.labels.shift();     _thermalBuf.labels.push(label);
-    _thermalBuf.ts.shift();         _thermalBuf.ts.push(now);
-    thermalTempData.shift();        thermalTempData.push(latestThermalTemp);
-    thermalFlowData.shift();        thermalFlowData.push(latestThermalFlow);
-    thermalPowerData.shift();       thermalPowerData.push(latestConsumptionPower);
-    thermalPowerChart.update('none');
 }
 setInterval(_masterTick, 3000);
 
