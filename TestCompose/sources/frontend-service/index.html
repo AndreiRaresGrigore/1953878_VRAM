@@ -23,7 +23,16 @@
         </div>
 
         <div class="header-right">
-            <a href="#" class="btn-purple" id="connection-status">Simulator Disconnected</a>
+            <div style="display: flex; align-items: center; gap: 0.8rem;">
+                <a href="#" class="btn-purple" id="connection-status">Simulator Disconnected</a>
+                <div class="palette-switcher">
+                    <span class="palette-switcher-label">Palette</span>
+                    <button class="palette-btn active" data-target="mars" onclick="setPalette('mars')" title="Mars — Rust & Parchment">M</button>
+                    <button class="palette-btn" data-target="arctic" onclick="setPalette('arctic')" title="Arctic — Ice Blue">A</button>
+                    <button class="palette-btn" data-target="phosphor" onclick="setPalette('phosphor')" title="Phosphor — CRT Green">P</button>
+                    <button class="palette-btn" data-target="dune" onclick="setPalette('dune')" title="Dune — Mars Pastel">D</button>
+                </div>
+            </div>
             <div class="actuators-bar">
                 <div class="act-mini neo-box">
                     <div class="act-mini-top"><strong>Fan</strong><span class="status-led" id="fan-led"></span></div>
@@ -258,5 +267,30 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script src="script.js"></script>
+    <script>
+        // Palette Switcher
+        (function() {
+            const STORAGE_KEY = 'mars-dashboard-palette';
+            const palettes = ['mars', 'arctic', 'phosphor', 'dune'];
+
+            function setPalette(name) {
+                if (!palettes.includes(name)) return;
+                document.documentElement.setAttribute('data-palette', name);
+                // Update active button
+                document.querySelectorAll('.palette-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.target === name);
+                });
+                try { localStorage.setItem(STORAGE_KEY, name); } catch(e) {}
+            }
+
+            // Expose globally for onclick handlers
+            window.setPalette = setPalette;
+
+            // Restore saved palette on load
+            let saved = 'mars';
+            try { saved = localStorage.getItem(STORAGE_KEY) || 'mars'; } catch(e) {}
+            setPalette(saved);
+        })();
+    </script>
 </body>
 </html>

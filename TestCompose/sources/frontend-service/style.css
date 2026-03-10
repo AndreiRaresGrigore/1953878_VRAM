@@ -1,32 +1,172 @@
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Oxanium:wght@400;700&display=swap');
 
-:root {
-    /* Mars Mission Telemetry Palette */
-    --bg-color: #0d0f14;           /* Deep space black */
-    --panel-bg: #13161e;           /* Dark panel background */
-    --border-color: #c1440e;       /* Martian rust / iron oxide */
-    --shadow-color: #8a2f08;       /* Deep rust shadow */
-    --text-primary: #e8d5b0;       /* Dusty parchment text */
-    --text-secondary: #9a8870;     /* Muted sand */
-    --text-muted: #5a5040;         /* Dim dust */
+/* ==========================================
+   PALETTE DEFINITIONS
+   ========================================== */
 
-    /* Functional accent colors */
-    --color-green: #1a3d2e;        /* Dark oxygen green (panel) */
-    --color-green-accent: #2dff7a; /* Phosphor green readout */
-    --color-purple: #1e1a30;       /* Dark electronics purple (panel) */
-    --color-purple-accent: #b87fff;/* Sensor value violet */
-    --color-blue: #0f2233;         /* Dark systems blue (panel) */
-    --color-blue-accent: #38b6ff;  /* Comms blue highlight */
-    --color-yellow: #3d2800;       /* Dark amber alert (panel) */
-    --color-yellow-accent: #ffb020;/* Alert amber */
-    --color-red: #3d0f0f;          /* Danger red (panel) */
-    --color-red-accent: #ff4444;   /* Critical red */
-
+/* PALETTE 1 — Mars (default) */
+:root,
+[data-palette="mars"] {
+    --bg-color: #0d0f14;
+    --panel-bg: #13161e;
+    --border-color: #c1440e;
+    --shadow-color: #8a2f08;
+    --text-primary: #e8d5b0;
+    --text-secondary: #9a8870;
+    --text-muted: #5a5040;
+    --color-green: #1a3d2e;
+    --color-green-accent: #2dff7a;
+    --color-purple: #1e1a30;
+    --color-purple-accent: #b87fff;
+    --color-blue: #0f2233;
+    --color-blue-accent: #38b6ff;
+    --color-yellow: #3d2800;
+    --color-yellow-accent: #ffb020;
+    --color-red: #3d0f0f;
+    --color-red-accent: #ff4444;
     --brutal-border: 1px solid var(--border-color);
     --brutal-shadow: 2px 2px 0px 0px var(--shadow-color);
     --glow-green: 0 0 8px rgba(45, 255, 122, 0.3);
     --glow-amber: 0 0 8px rgba(255, 176, 32, 0.3);
     --glow-red: 0 0 8px rgba(255, 68, 68, 0.4);
+}
+
+/* PALETTE 2 — Arctic (cold blue/teal) */
+[data-palette="arctic"] {
+    --bg-color: #050d14;
+    --panel-bg: #0a1520;
+    --border-color: #0077aa;
+    --shadow-color: #004466;
+    --text-primary: #cce8f4;
+    --text-secondary: #6a9db8;
+    --text-muted: #2a4a5a;
+    --color-green: #0a2a20;
+    --color-green-accent: #00e5cc;
+    --color-purple: #0e0f28;
+    --color-purple-accent: #7bb8ff;
+    --color-blue: #051525;
+    --color-blue-accent: #00aaff;
+    --color-yellow: #1a1800;
+    --color-yellow-accent: #ffe066;
+    --color-red: #1a0808;
+    --color-red-accent: #ff6655;
+    --brutal-border: 1px solid var(--border-color);
+    --brutal-shadow: 2px 2px 0px 0px var(--shadow-color);
+    --glow-green: 0 0 8px rgba(0, 229, 204, 0.35);
+    --glow-amber: 0 0 8px rgba(255, 224, 102, 0.3);
+    --glow-red: 0 0 8px rgba(255, 102, 85, 0.4);
+}
+
+/* PALETTE 3 — Phosphor (classic green terminal) */
+[data-palette="phosphor"] {
+    --bg-color: #010a01;
+    --panel-bg: #050f05;
+    --border-color: #1a6b1a;
+    --shadow-color: #0a3d0a;
+    --text-primary: #b0f0b0;
+    --text-secondary: #5a9a5a;
+    --text-muted: #2a4a2a;
+    --color-green: #071407;
+    --color-green-accent: #00ff44;
+    --color-purple: #0a0f0a;
+    --color-purple-accent: #55ff99;
+    --color-blue: #050d05;
+    --color-blue-accent: #44dd88;
+    --color-yellow: #1a1400;
+    --color-yellow-accent: #ccff33;
+    --color-red: #150303;
+    --color-red-accent: #ff6633;
+    --brutal-border: 1px solid var(--border-color);
+    --brutal-shadow: 2px 2px 0px 0px var(--shadow-color);
+    --glow-green: 0 0 10px rgba(0, 255, 68, 0.4);
+    --glow-amber: 0 0 8px rgba(204, 255, 51, 0.35);
+    --glow-red: 0 0 8px rgba(255, 102, 51, 0.4);
+}
+
+/* PALETTE 4 — Dune (Mars pastel light) */
+[data-palette="dune"] {
+    --bg-color: #f5e6d3;
+    --panel-bg: #eedcc6;
+    --border-color: #c0622a;
+    --shadow-color: #a0471a;
+    --text-primary: #3a1f0d;
+    --text-secondary: #7a4a28;
+    --text-muted: #b88a6a;
+    --color-green: #d4ead8;
+    --color-green-accent: #1a7a3a;
+    --color-purple: #e8d8ee;
+    --color-purple-accent: #6a2a9a;
+    --color-blue: #cde0f0;
+    --color-blue-accent: #1a5a9a;
+    --color-yellow: #faeac0;
+    --color-yellow-accent: #a06000;
+    --color-red: #f5d0c8;
+    --color-red-accent: #c02a1a;
+    --brutal-border: 1px solid var(--border-color);
+    --brutal-shadow: 2px 2px 0px 0px var(--shadow-color);
+    --glow-green: 0 0 6px rgba(26, 122, 58, 0.2);
+    --glow-amber: 0 0 6px rgba(160, 96, 0, 0.2);
+    --glow-red: 0 0 6px rgba(192, 42, 26, 0.25);
+}
+.palette-switcher {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.palette-switcher-label {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-family: 'Oxanium', monospace;
+}
+
+.palette-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    font-weight: bold;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.palette-btn:hover {
+    transform: translate(-1px, -1px);
+}
+
+.palette-btn.active {
+    border-color: var(--text-primary) !important;
+    box-shadow: 0 0 6px rgba(255,255,255,0.2);
+    transform: translate(-1px, -1px);
+}
+
+.palette-btn[data-target="mars"] {
+    background: linear-gradient(135deg, #0d0f14 50%, #c1440e 50%);
+    border-color: #c1440e;
+    color: #e8d5b0;
+}
+.palette-btn[data-target="arctic"] {
+    background: linear-gradient(135deg, #050d14 50%, #0077aa 50%);
+    border-color: #0077aa;
+    color: #cce8f4;
+}
+.palette-btn[data-target="phosphor"] {
+    background: linear-gradient(135deg, #010a01 50%, #1a6b1a 50%);
+    border-color: #1a6b1a;
+    color: #b0f0b0;
+}
+.palette-btn[data-target="dune"] {
+    background: linear-gradient(135deg, #f5e6d3 50%, #c0622a 50%);
+    border-color: #c0622a;
+    color: #3a1f0d;
 }
 
 * { box-sizing: border-box; }
@@ -35,8 +175,8 @@ body {
     font-family: 'Oxanium', 'Share Tech Mono', monospace;
     background-color: var(--bg-color);
     background-image:
-        radial-gradient(ellipse at 20% 50%, rgba(193, 68, 14, 0.04) 0%, transparent 60%),
-        radial-gradient(ellipse at 80% 20%, rgba(45, 255, 122, 0.02) 0%, transparent 50%);
+        radial-gradient(ellipse at 20% 50%, color-mix(in srgb, var(--border-color) 8%, transparent) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, color-mix(in srgb, var(--color-green-accent) 4%, transparent) 0%, transparent 50%);
     color: var(--text-primary);
     margin: 0;
     padding: 0.4rem 1rem;
@@ -135,7 +275,7 @@ body {
 .sensor-header strong { color: var(--text-primary); }
 .sensor-value { font-size: 1.4rem; font-weight: 700; color: var(--color-green-accent); margin-top: 2px; text-shadow: var(--glow-green); font-family: 'Share Tech Mono', monospace; }
 .multi-value-label { font-size: 0.65rem; color: var(--text-muted); font-weight: bold; letter-spacing: 0.08em; text-transform: uppercase; }
-.last-updated { font-size: 0.6rem; color: var(--text-muted); margin-top: auto; padding-top: 3px; border-top: 1px dashed #2a2520; text-align: right; }
+.last-updated { font-size: 0.6rem; color: var(--text-muted); margin-top: auto; padding-top: 3px; border-top: 1px dashed var(--text-muted); text-align: right; }
 
 /* Centratura verticale del contenuto nei widget */
 .single-val-center { display: flex; justify-content: center; align-items: center; text-align: center; width: 100%; flex: 1; }
@@ -144,7 +284,7 @@ body {
 .sensor-card > .grid-4 { flex: 1; align-content: center; }
 
 .status-container { display: flex; align-items: center; gap: 6px; }
-.status-led { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--border-color); background-color: #2a2520; }
+.status-led { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--border-color); background-color: var(--text-muted); }
 .led-green { background-color: var(--color-green-accent); box-shadow: var(--glow-green); }
 .led-red { background-color: var(--color-red-accent); box-shadow: var(--glow-red); }
 .status-badge { font-size: 0.6rem; font-weight: bold; padding: 2px 5px; border: 1px solid var(--border-color); border-radius: 3px; display: none; font-family: 'Share Tech Mono', monospace; }
@@ -157,7 +297,7 @@ body {
 .rule-form { display: flex; gap: 0.6rem; align-items: flex-end; }
 .form-group { display: flex; flex-direction: column; gap: 0.2rem; flex: 1; }
 .form-group label { font-weight: bold; font-size: 0.65rem; color: var(--color-green-accent); letter-spacing: 0.08em; text-transform: uppercase; }
-.form-control { padding: 0.3rem 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; box-shadow: var(--brutal-shadow); font-family: 'Oxanium', monospace; font-size: 0.8rem; font-weight: bold; background-color: #0d1a12; color: var(--text-primary); }
+.form-control { padding: 0.3rem 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; box-shadow: var(--brutal-shadow); font-family: 'Oxanium', monospace; font-size: 0.8rem; font-weight: bold; background-color: var(--bg-color); color: var(--text-primary); }
 .form-control:focus { outline: none; box-shadow: 3px 3px 0px 0px var(--shadow-color), var(--glow-green); border-color: var(--color-green-accent); }
 .btn-form { height: 34px; padding: 0 1rem; background-color: var(--color-yellow); border: 1px solid var(--color-yellow-accent); box-shadow: var(--brutal-shadow); font-weight: bold; font-family: 'Oxanium', monospace; font-size: 0.8rem; border-radius: 4px; cursor: pointer; transition: all 0.1s ease; color: var(--color-yellow-accent); letter-spacing: 0.05em; }
 .btn-form:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0px 0px var(--shadow-color), var(--glow-amber); }
@@ -165,12 +305,12 @@ body {
 
 /* Stile controlli inline edit (modalità modifica regola) */
 .edit-select, .edit-input { padding: 0.15rem 0.4rem; border: 1px solid var(--color-yellow-accent); border-radius: 4px; box-shadow: var(--brutal-shadow); font-family: 'Oxanium', monospace; font-size: 0.85rem; font-weight: bold; background-color: var(--color-yellow); color: var(--color-yellow-accent); }
-.edit-input { background-color: #1a1200; color: var(--color-yellow-accent); width: 70px; }
+.edit-input { background-color: var(--bg-color); color: var(--color-yellow-accent); width: 70px; }
 .edit-select:focus, .edit-input:focus { outline: none; }
 
 .rules-list-wrapper { flex: 1; overflow-y: auto; background: var(--panel-bg); border: var(--brutal-border); border-radius: 4px; padding: 0.6rem; box-shadow: var(--brutal-shadow); }
 .rules-grid { display: flex; flex-direction: column; gap: 0.4rem; }
-.rule-card { border: 1px solid #2a2520; border-radius: 4px; padding: 0.5rem 0.8rem; display: flex; justify-content: space-between; align-items: center; background: #0f1118; }
+.rule-card { border: 1px solid var(--text-muted); border-radius: 4px; padding: 0.5rem 0.8rem; display: flex; justify-content: space-between; align-items: center; background: var(--bg-color); }
 .rule-logic { font-size: 0.85rem; font-weight: bold; color: var(--text-primary); font-family: 'Share Tech Mono', monospace; }
 .rule-logic span.highlight { background-color: var(--color-yellow); color: var(--color-yellow-accent); padding: 0.1rem 0.3rem; border: 1px solid var(--color-yellow-accent); border-radius: 3px; margin: 0 0.1rem; }
 .btn-red { background-color: var(--color-red); color: var(--color-red-accent); border: 1px solid var(--color-red-accent); padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 3px; cursor: pointer; font-weight: bold; font-family: 'Oxanium', monospace; }
@@ -298,7 +438,8 @@ body {
     background-color: var(--color-purple);
 }
 .btn-blue-outline:hover {
-    background-color: #60a5fa; /* Un blu leggermente più scuro */
+    background-color: var(--color-blue-accent);
+    color: var(--bg-color);
 }
 
 /* Click: effetto schiacciamento brutalista */
@@ -312,7 +453,7 @@ body {
 .btn-move:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-    background-color: #f3f4f6;
+    background-color: var(--panel-bg);
     box-shadow: none;
     transform: none;
 }
@@ -387,7 +528,7 @@ body {
 /* Badges di stato per la finestra Energy Balance */
 .energy-surplus { background-color: var(--color-green); color: var(--color-green-accent); box-shadow: var(--brutal-shadow), var(--glow-green); border-color: var(--color-green-accent) !important; }
 .energy-deficit { background-color: var(--color-red); color: var(--color-red-accent); box-shadow: var(--brutal-shadow), var(--glow-red); }
-.energy-waiting { background-color: #1a1a1a; color: var(--text-muted); border-color: #2a2520; }
+.energy-waiting { background-color: var(--panel-bg); color: var(--text-muted); border-color: var(--text-muted); }
 
 /* Overlay oscuro dietro al popup grafico */
 .modal-overlay {
@@ -456,7 +597,7 @@ body {
    ========================================== */
 .rule-card.suspended {
     opacity: 0.45;
-    background-color: #0a0c10;
+    background-color: var(--bg-color);
     border-style: dashed;
     filter: grayscale(70%);
 }
@@ -520,8 +661,8 @@ body {
 .btn-state:disabled {
     opacity: 0.3;
     cursor: not-allowed;
-    background-color: #1a1a1a;
-    color: #3a3a3a;
+    background-color: var(--panel-bg);
+    color: var(--text-muted);
     box-shadow: none;
     border-style: dashed;
 }
