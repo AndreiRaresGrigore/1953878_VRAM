@@ -4,7 +4,6 @@
 const statusBtn = document.getElementById('connection-status');
 const lastUpdatedTimes = {};
 
-const ACTUATORS_API_URL = 'http://localhost:8080/api/actuators';
 const ENGINE_API_URL = 'http://localhost:8081/api/rules';
 
 const timeElementMap = {
